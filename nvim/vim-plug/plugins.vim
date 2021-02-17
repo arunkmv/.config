@@ -10,7 +10,6 @@ Plug 'jeffkreeftmeijer/vim-numbertoggle'
 Plug 'junegunn/limelight.vim'
 Plug 'tpope/vim-fugitive'
 Plug 'preservim/nerdtree'
-Plug 'r901042004/riscv.vim'
 Plug 'rbgrouleff/bclose.vim'
 
 call plug#end()

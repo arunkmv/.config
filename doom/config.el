@@ -8,7 +8,8 @@
  doom-theme 'doom-gruvbox
  default-directory "~"
  org-directory "~/org/"
- display-line-numbers-type 'relative)
+ display-line-numbers-type 'relative
+ vterm-shell "/bin/zsh")
 
 ;; Use default treemacs theme instead of doom-atom theme
 (when (featurep! :ui treemacs)
