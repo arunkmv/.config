@@ -14,3 +14,8 @@
 ;; Use default treemacs theme instead of doom-atom theme
 (when (featurep! :ui treemacs)
   (remove-hook 'doom-load-theme-hook #'doom-themes-treemacs-config))
+
+(map!
+ :map vterm-mode-map
+ :n "k" #'vterm-send-up
+ :n "j" #'vterm-send-down)
