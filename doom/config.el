@@ -17,5 +17,21 @@
 
 (map!
  :map vterm-mode-map
- :n "k" #'vterm-send-up
- :n "j" #'vterm-send-down)
+ :n "-" #'vterm-send-up
+ :n "=" #'vterm-send-down)
+
+(setq lsp-log-io t)
+(setq lsp-python-ms-extra-paths ["./src/python" "./configs"])
+
+(custom-set-variables
+ '(conda-anaconda-home (getenv "CONDA_HOME")))
+(setq conda-env-home-directory (expand-file-name "~/.conda"))
+
+(after! lsp-clients
+  (set-lsp-priority! 'clangd 1))  ; ccls has priority 0
+
+(setq lsp-clients-clangd-args '("-j=3"
+                                "--background-index"
+                                "--clang-tidy"
+                                "--completion-style=detailed"
+                                "--header-insertion=never"))
