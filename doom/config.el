@@ -15,11 +15,13 @@
 (when (featurep! :ui treemacs)
   (remove-hook 'doom-load-theme-hook #'doom-themes-treemacs-config))
 
+;; Browse shell history in vterm
 (map!
  :map vterm-mode-map
  :n "-" #'vterm-send-up
  :n "=" #'vterm-send-down)
 
+;; Prog mode
 (setq lsp-log-io t)
 (setq lsp-python-ms-extra-paths ["./src/python" "./configs"])
 
@@ -35,3 +37,8 @@
                                 "--clang-tidy"
                                 "--completion-style=detailed"
                                 "--header-insertion=never"))
+
+;; Change dired default behaviour of creating new buffers
+(map!
+ :map dired-mode-map
+ :n "-" (lambda () (interactive) (find-alternate-file "..")))
