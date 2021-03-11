@@ -52,4 +52,18 @@
 
 (map! :leader :desc "Edit .env" :n "fv" #'edit-env)
 
+;; Better zotxt-emacs integration
+(add-hook 'org-mode-hook (lambda () (org-zotxt-mode 1)))
 (add-to-list 'org-file-apps '("\\.pdf\\'" . emacs))
+
+(defun org-zotxt-insert-current-selection ()
+  "Insert reference link for the currently selected item in Zotero"
+  (interactive)
+  (org-zotxt-insert-reference-link 4))
+
+(map! :map org-mode-map
+      :localleader
+      (:prefix ("z" . "zotero")
+       :desc "Link to selected item" "i" #'org-zotxt-insert-current-selection
+       :desc "Link to an item"       "I" #'org-zotxt-insert-reference-link
+       :desc "Open link"             "a" #'org-zotxt-open-attachment))
