@@ -7,9 +7,10 @@
  doom-font (font-spec :family "Source Code Pro for Powerline" :size 17 :weight 'Regular)
  doom-theme 'doom-gruvbox
  default-directory "~"
- org-directory "~/org/"
+ org-directory "~/Org/"
  display-line-numbers-type 'relative
- vterm-shell "/bin/zsh")
+ vterm-shell "/bin/zsh"
+ +doom-dashboard-banner-file (expand-file-name "emacs_logo.png" doom-private-dir))
 
 ;; Use default treemacs theme instead of doom-atom theme
 (when (featurep! :ui treemacs)
@@ -42,3 +43,13 @@
 (map!
  :map dired-mode-map
  :n "-" (lambda () (interactive) (find-alternate-file "..")))
+
+;; Custom function to edit the .env file
+(defun edit-env ()
+  "Edit the .env file"
+  (interactive)
+  (find-file-other-window (expand-file-name "~/.env")))
+
+(map! :leader :desc "Edit .env" :n "fv" #'edit-env)
+
+(add-to-list 'org-file-apps '("\\.pdf\\'" . emacs))
