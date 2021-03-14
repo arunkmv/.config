@@ -50,3 +50,4 @@
 ;(unpin! t)
 
 (package! zotxt)
+(package! org-fancy-priorities)

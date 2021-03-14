@@ -1,28 +1,24 @@
 ;;; $DOOMDIR/config.el -*- lexical-binding: t; -*-
 
-;; Maximized screen on start-up
-(add-to-list 'initial-frame-alist '(fullscreen . maximized))
+;; ============================ DOOM Emacs ============================
 
 (setq
  doom-font (font-spec :family "Source Code Pro for Powerline" :size 17 :weight 'Regular)
  doom-theme 'doom-gruvbox
  default-directory "~"
- org-directory "~/Org/"
  display-line-numbers-type 'relative
- vterm-shell "/bin/zsh"
  +doom-dashboard-banner-file (expand-file-name "emacs_logo.png" doom-private-dir))
+
+;; Maximized screen on start-up
+(add-to-list 'initial-frame-alist '(fullscreen . maximized))
 
 ;; Use default treemacs theme instead of doom-atom theme
 (when (featurep! :ui treemacs)
   (remove-hook 'doom-load-theme-hook #'doom-themes-treemacs-config))
 
-;; Browse shell history in vterm
-(map!
- :map vterm-mode-map
- :n "-" #'vterm-send-up
- :n "=" #'vterm-send-down)
+;; ============================ Prog mode ============================
 
-;; Prog mode
+;; Python
 (setq lsp-log-io t)
 (setq lsp-python-ms-extra-paths ["./src/python" "./configs"])
 
@@ -30,6 +26,7 @@
  '(conda-anaconda-home (getenv "CONDA_HOME")))
 (setq conda-env-home-directory (expand-file-name "~/.conda"))
 
+;; C/C++
 (after! lsp-clients
   (set-lsp-priority! 'clangd 1))  ; ccls has priority 0
 
@@ -39,21 +36,24 @@
                                 "--completion-style=detailed"
                                 "--header-insertion=never"))
 
+;; ========================= Dired + Projectile =========================
+
 ;; Change dired default behaviour of creating new buffers
 (map!
  :map dired-mode-map
  :n "-" (lambda () (interactive) (find-alternate-file "..")))
 
-;; Custom function to edit the .env file
-(defun edit-env ()
-  "Edit the .env file"
-  (interactive)
-  (find-file-other-window (expand-file-name "~/.env")))
+(setq projectile-track-known-projects-automatically nil)
 
-(map! :leader :desc "Edit .env" :n "fv" #'edit-env)
+;; ============================ Org Mode ============================
 
-;; Better zotxt-emacs integration
-(add-hook 'org-mode-hook (lambda () (org-zotxt-mode 1)))
+(setq org-directory "~/Org/")
+
+;; Hooks
+(add-hook! 'org-mode-hook (lambda () (org-zotxt-mode 1)))
+(add-hook! 'org-mode-hook  #'org-fancy-priorities-mode)
+
+;; zotxt-emacs
 (add-to-list 'org-file-apps '("\\.pdf\\'" . emacs))
 
 (defun org-zotxt-insert-current-selection ()
@@ -67,3 +67,25 @@
        :desc "Link to selected item" "i" #'org-zotxt-insert-current-selection
        :desc "Link to an item"       "I" #'org-zotxt-insert-reference-link
        :desc "Open link"             "a" #'org-zotxt-open-attachment))
+
+;; Org fancy priorities
+(after! org
+  (setq org-fancy-priorities-list '("■","■","■")))
+
+;; ============================ Term + Shell ============================
+
+ (setq vterm-shell "/bin/zsh")
+
+;; Browse shell history in vterm
+(map!
+ :map vterm-mode-map
+ :n "-" #'vterm-send-up
+ :n "=" #'vterm-send-down)
+
+;; Custom function to edit zsh .env file
+(defun edit-env ()
+  "Edit the .env file"
+  (interactive)
+  (find-file-other-window (expand-file-name "~/.env")))
+
+(map! :leader :desc "Edit .env" :n "fv" #'edit-env)
