@@ -49,12 +49,29 @@
 
 (setq org-directory "~/Org/")
 
-;; Hooks
-(add-hook! 'org-mode-hook (lambda () (org-zotxt-mode 1)))
-(add-hook! 'org-mode-hook  #'org-fancy-priorities-mode)
+;; Customize todo keywords
+
+(after! org
+  (setq org-todo-keywords '((sequence "TODO(t)" "INPROGRESS(i)" "PARKED(p)" "|" "DONE(d)" "KILLED(k)")))
+
+  (with-no-warnings
+    (custom-declare-face '+org-todo-todo `((t (:foreground ,(doom-color 'yellow) :inherit (bold-italic org-todo)))) "")
+    (custom-declare-face '+org-todo-inprogress `((t (:foreground ,(doom-color 'violet) :inherit (bold-italic org-todo)))) "")
+    (custom-declare-face '+org-todo-parked `((t (:foreground ,(doom-color 'orange) :inherit (bold-italic org-todo)))) "")
+    (custom-declare-face '+org-todo-done `((t (:foreground ,(doom-color 'green) :inherit (bold-italic org-todo)))) "")
+    (custom-declare-face '+org-todo-killed `((t (:foreground ,(doom-color 'red) :inherit (bold-italic org-todo)))) ""))
+
+  (setq org-todo-keyword-faces
+        '(("TODO" . +org-todo-todo)
+          ("INPROGRESS" . +org-todo-inprogress)
+          ("PARKED" . +org-todo-parked)
+          ("DONE" . +org-todo-done)
+          ("KILLED" . +org-todo-killed)))
+
+  (add-to-list 'org-file-apps '("\\.pdf\\'" . emacs)))
 
 ;; zotxt-emacs
-(add-to-list 'org-file-apps '("\\.pdf\\'" . emacs))
+(add-hook! 'org-mode-hook (lambda () (org-zotxt-mode 1)))
 
 (defun org-zotxt-insert-current-selection ()
   "Insert reference link for the currently selected item in Zotero"
@@ -68,9 +85,11 @@
        :desc "Link to an item"       "I" #'org-zotxt-insert-reference-link
        :desc "Open link"             "a" #'org-zotxt-open-attachment))
 
-;; Org fancy priorities
-(after! org
-  (setq org-fancy-priorities-list '("■","■","■")))
+;; Fancy priority icons
+(use-package! org-fancy-priorities
+  :hook (org-mode . org-fancy-priorities-mode)
+  :hook (org-agenda-mode . org-fancy-priorities-mode)
+  :config (setq org-fancy-priorities-list '("■" "■" "■")))
 
 ;; ============================ Term + Shell ============================
 
