@@ -19,12 +19,12 @@
 ;; ============================ Prog mode ============================
 
 ;; Python
-(setq lsp-log-io t)
-(setq lsp-python-ms-extra-paths ["./src/python" "./configs"])
+(setq lsp-log-io t
+      lsp-python-ms-extra-paths ["./src/python" "./configs"]
+      conda-env-home-directory (expand-file-name "~/.conda"))
 
 (custom-set-variables
  '(conda-anaconda-home (getenv "CONDA_HOME")))
-(setq conda-env-home-directory (expand-file-name "~/.conda"))
 
 ;; C/C++
 (after! lsp-clients
@@ -50,7 +50,6 @@
 (setq org-directory "~/Org/")
 
 ;; Customize todo keywords
-
 (after! org
   (setq org-todo-keywords '((sequence "TODO(t)" "INPROGRESS(i)" "PARKED(p)" "|" "DONE(d)" "KILLED(k)")))
 
@@ -66,12 +65,22 @@
           ("INPROGRESS" . +org-todo-inprogress)
           ("PARKED" . +org-todo-parked)
           ("DONE" . +org-todo-done)
-          ("KILLED" . +org-todo-killed)))
+          ("KILLED" . +org-todo-killed))))
 
-  (add-to-list 'org-file-apps '("\\.pdf\\'" . emacs)))
+;; Fancy priority icons
+(use-package! org-fancy-priorities
+  :hook (org-mode . org-fancy-priorities-mode)
+  :hook (org-agenda-mode . org-fancy-priorities-mode)
+  :config (setq org-fancy-priorities-list '("■" "■" "■")))
+
+;; Right align org tags
+(after! org
+  (setq org-tags-column 60))
 
 ;; zotxt-emacs
 (add-hook! 'org-mode-hook (lambda () (org-zotxt-mode 1)))
+(after! org
+  (add-to-list 'org-file-apps '("\\.pdf\\'" . emacs)))
 
 (defun org-zotxt-insert-current-selection ()
   "Insert reference link for the currently selected item in Zotero"
@@ -85,11 +94,8 @@
        :desc "Link to an item"       "I" #'org-zotxt-insert-reference-link
        :desc "Open link"             "a" #'org-zotxt-open-attachment))
 
-;; Fancy priority icons
-(use-package! org-fancy-priorities
-  :hook (org-mode . org-fancy-priorities-mode)
-  :hook (org-agenda-mode . org-fancy-priorities-mode)
-  :config (setq org-fancy-priorities-list '("■" "■" "■")))
+;; Beamer
+(add-hook! 'org-mode-hook 'org-beamer-mode)
 
 ;; ============================ Term + Shell ============================
 
