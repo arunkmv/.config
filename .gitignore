@@ -5,3 +5,17 @@ htop/
 octave/
 yarn/
 
+/Code/
+/QtProject.conf
+/dconf/
+/evolution/
+/gnome-initial-setup-done
+/gtk-3.0/
+/ibus/
+/jgit/
+/pulse/
+/spotify/
+/ttyper/
+/user-dirs.dirs
+/user-dirs.locale
+/zoomus.conf
