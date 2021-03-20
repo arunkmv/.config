@@ -4,13 +4,22 @@
 
 (setq
  doom-font (font-spec :family "Source Code Pro for Powerline" :size 17 :weight 'Regular)
- doom-theme 'doom-gruvbox
+ doom-theme 'doom-gruvbox-mod
  default-directory "~"
  display-line-numbers-type 'relative
+ doom-modeline-buffer-encoding nil
+ display-time-default-load-average nil
  +doom-dashboard-banner-file (expand-file-name "emacs_logo.png" doom-private-dir))
 
+;; Display battery and time in modeline
+(display-battery-mode 1)
+(display-time-mode 1)
+
 ;; Maximized screen on start-up
-(add-to-list 'initial-frame-alist '(fullscreen . maximized))
+;;(add-to-list 'initial-frame-alist '(fullscreen . maximized))
+
+;; Fullscreen
+(toggle-frame-fullscreen)
 
 ;; Use default treemacs theme instead of doom-atom theme
 (when (featurep! :ui treemacs)
