@@ -103,8 +103,13 @@
        :desc "Link to an item"       "I" #'org-zotxt-insert-reference-link
        :desc "Open link"             "a" #'org-zotxt-open-attachment))
 
-;; Beamer
+;; LaTeX + Beamer
 (add-hook! 'org-mode-hook 'org-beamer-mode)
+(require 'ox-latex)
+
+(setq org-latex-listings t)
+(add-to-list 'org-latex-packages-alist '("" "listings"))
+(add-to-list 'org-latex-packages-alist '("" "color"))
 
 ;; ============================ Term + Shell ============================
 
