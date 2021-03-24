@@ -1,6 +1,9 @@
 #+TITLE:   My Doom Emacs config
 
-* Doom Emacs global config
+#+ATTR_HTML: :align center
+[[file:emacs_logo.png]]
+
+* Global
 
 General things
 #+begin_src elisp
@@ -48,7 +51,7 @@ Keep projectile from adding new projects everytime a directory is opened
 (setq projectile-track-known-projects-automatically nil)
 #+end_src
 
-* Prog mode stuff
+* Prog mode
 ** Python
 
 #+begin_src elisp
