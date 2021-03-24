@@ -1,0 +1,177 @@
+#+TITLE:   My Doom Emacs config
+
+* Doom Emacs global config
+
+General things
+#+begin_src elisp
+(setq
+ doom-font (font-spec :family "Source Code Pro for Powerline" :size 17 :weight 'Regular)
+ doom-theme 'doom-gruvbox-mod
+ default-directory "~"
+ display-line-numbers-type 'relative
+ doom-modeline-buffer-encoding nil
+ display-time-default-load-average nil
+ +doom-dashboard-banner-file (expand-file-name "emacs_logo.png" doom-private-dir))
+#+end_src
+
+Display battery and time in modeline
+#+begin_src elisp
+(display-battery-mode 1)
+(display-time-mode 1)
+#+end_src
+
+Maximized screen on startup, keeping this here for later
+#+begin_src elisp
+;;(add-to-list 'initial-frame-alist '(fullscreen . maximized))
+#+end_src
+
+Fullscreen on startup
+#+begin_src elisp
+(toggle-frame-fullscreen)
+#+end_src
+
+Use default treemacs theme instead of the doom-atom theme
+#+begin_src elisp
+(when (featurep! :ui treemacs)
+  (remove-hook 'doom-load-theme-hook #'doom-themes-treemacs-config))
+#+end_src
+
+Change dired's default behaviour of creating new buffers
+#+begin_src elisp
+(map!
+ :map dired-mode-map
+ :n "-" (lambda () (interactive) (find-alternate-file "..")))
+#+end_src
+
+Keep projectile from adding new projects everytime a directory is opened
+#+begin_src elisp
+(setq projectile-track-known-projects-automatically nil)
+#+end_src
+
+* Prog mode stuff
+** Python
+
+#+begin_src elisp
+(setq lsp-log-io t
+      lsp-python-ms-extra-paths ["./src/python" "./configs"]
+      conda-env-home-directory (expand-file-name "~/.conda"))
+
+(custom-set-variables
+ '(conda-anaconda-home (getenv "CONDA_HOME")))
+#+end_src
+
+** C/C++
+#+begin_src elisp
+(after! lsp-clients
+  (set-lsp-priority! 'clangd 1))  ; ccls has priority 0
+
+(setq lsp-clients-clangd-args '("-j=3"
+                                "--background-index"
+                                "--clang-tidy"
+                                "--completion-style=detailed"
+                                "--header-insertion=never"))
+#+end_src
+
+* Org mode
+
+Set the default org directory
+#+begin_src elisp
+(setq org-directory "~/Org/")
+#+end_src
+
+** Org agenda nicities
+*** Customize todo keywords
+
+#+begin_src elisp
+(after! org
+  (setq org-todo-keywords '((sequence "TODO(t)" "INPROGRESS(i)" "PARKED(p)" "|" "DONE(d)" "KILLED(k)")))
+
+  (with-no-warnings
+    (custom-declare-face '+org-todo-todo `((t (:foreground ,(doom-color 'yellow) :inherit (bold-italic org-todo)))) "")
+    (custom-declare-face '+org-todo-inprogress `((t (:foreground ,(doom-color 'violet) :inherit (bold-italic org-todo)))) "")
+    (custom-declare-face '+org-todo-parked `((t (:foreground ,(doom-color 'orange) :inherit (bold-italic org-todo)))) "")
+    (custom-declare-face '+org-todo-done `((t (:foreground ,(doom-color 'green) :inherit (bold-italic org-todo)))) "")
+    (custom-declare-face '+org-todo-killed `((t (:foreground ,(doom-color 'red) :inherit (bold-italic org-todo)))) ""))
+
+  (setq org-todo-keyword-faces
+        '(("TODO" . +org-todo-todo)
+          ("INPROGRESS" . +org-todo-inprogress)
+          ("PARKED" . +org-todo-parked)
+          ("DONE" . +org-todo-done)
+          ("KILLED" . +org-todo-killed))))
+#+end_src
+
+*** Fancy priority icons
+
+#+begin_src elisp
+(use-package! org-fancy-priorities
+  :hook (org-mode . org-fancy-priorities-mode)
+  :hook (org-agenda-mode . org-fancy-priorities-mode)
+  :config (setq org-fancy-priorities-list '("■" "■" "■")))
+#+end_src
+
+*** Right align org tags
+
+#+begin_src elisp
+(after! org
+  (setq org-tags-column 60))
+#+end_src
+
+** zotxt-emacs
+
+Configure zotxt-emacs for better zotero integration
+#+begin_src elisp
+(add-hook! 'org-mode-hook (lambda () (org-zotxt-mode 1)))
+(after! org
+  (add-to-list 'org-file-apps '("\\.pdf\\'" . emacs)))
+
+(defun org-zotxt-insert-current-selection ()
+  "Insert reference link for the currently selected item in Zotero"
+  (interactive)
+  (org-zotxt-insert-reference-link 4))
+
+(map! :map org-mode-map
+      :localleader
+      (:prefix ("z" . "zotero")
+       :desc "Link to selected item" "i" #'org-zotxt-insert-current-selection
+       :desc "Link to an item"       "I" #'org-zotxt-insert-reference-link
+       :desc "Open link"             "a" #'org-zotxt-open-attachment))
+#+end_src
+
+** LaTeX and Beamer export
+
+#+begin_src elisp
+(add-hook! 'org-mode-hook 'org-beamer-mode)
+(require 'ox-latex)
+
+(setq org-latex-listings t)
+(add-to-list 'org-latex-packages-alist '("" "listings"))
+(add-to-list 'org-latex-packages-alist '("" "color"))
+#+end_src
+
+* vterm
+
+Set default vterm shell
+#+begin_src elisp
+ (setq vterm-shell "/bin/zsh")
+#+end_src
+
+Browse shell history in vterm
+#+begin_src elisp
+(map!
+ :map vterm-mode-map
+ :n "-" #'vterm-send-up
+ :n "=" #'vterm-send-down)
+#+end_src
+
+* Other nice things
+** Custom function to edit the zsh .env file
+
+#+begin_src elisp
+(defun edit-env ()
+  "Edit the .env file"
+  (interactive)
+  (find-file-other-window (expand-file-name "~/.env")))
+
+(map! :leader :desc "Edit .env" :n "fv" #'edit-env)
+#+end_src
