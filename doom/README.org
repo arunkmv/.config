@@ -1,7 +1,6 @@
 #+TITLE:   My Doom Emacs config
 
-#+ATTR_HTML: :align center
-[[file:emacs_logo.png]]
+#+HTML:<div align=center><p><img alt="Emacs Logo" width="150" height="150" src="emacs_logo.png"></p></div>
 
 * Global
 
