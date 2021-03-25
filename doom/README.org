@@ -3,8 +3,7 @@
 #+HTML:<div align=center><p><img alt="Emacs Logo" width="150" height="150" src="emacs_logo.png"></p></div>
 
 * Global
-
-General things
+** General
 #+begin_src elisp
 (setq
  doom-font (font-spec :family "Source Code Pro for Powerline" :size 17 :weight 'Regular)
@@ -16,12 +15,14 @@ General things
  +doom-dashboard-banner-file (expand-file-name "emacs_logo.png" doom-private-dir))
 #+end_src
 
+** Battery and time
 Display battery and time in modeline
 #+begin_src elisp
 (display-battery-mode 1)
 (display-time-mode 1)
 #+end_src
 
+** Startup
 Maximized screen on startup, keeping this here for later
 #+begin_src elisp
 ;;(add-to-list 'initial-frame-alist '(fullscreen . maximized))
@@ -32,12 +33,14 @@ Fullscreen on startup
 (toggle-frame-fullscreen)
 #+end_src
 
+** Treemacs
 Use default treemacs theme instead of the doom-atom theme
 #+begin_src elisp
 (when (featurep! :ui treemacs)
   (remove-hook 'doom-load-theme-hook #'doom-themes-treemacs-config))
 #+end_src
 
+** Dired
 Change dired's default behaviour of creating new buffers
 #+begin_src elisp
 (map!
@@ -45,6 +48,7 @@ Change dired's default behaviour of creating new buffers
  :n "-" (lambda () (interactive) (find-alternate-file "..")))
 #+end_src
 
+** Projectile
 Keep projectile from adding new projects everytime a directory is opened
 #+begin_src elisp
 (setq projectile-track-known-projects-automatically nil)
@@ -81,7 +85,7 @@ Set the default org directory
 (setq org-directory "~/Org/")
 #+end_src
 
-** Org agenda nicities
+** Org agenda niceties
 *** Customize todo keywords
 
 #+begin_src elisp
@@ -119,7 +123,7 @@ Set the default org directory
   (setq org-tags-column 60))
 #+end_src
 
-** zotxt-emacs
+** Zotero integration
 
 Configure zotxt-emacs for better zotero integration
 #+begin_src elisp
@@ -151,7 +155,7 @@ Configure zotxt-emacs for better zotero integration
 (add-to-list 'org-latex-packages-alist '("" "color"))
 #+end_src
 
-* vterm
+* Term
 
 Set default vterm shell
 #+begin_src elisp
