@@ -155,7 +155,8 @@ Configure zotxt-emacs for better zotero integration
 (add-to-list 'org-latex-packages-alist '("" "color"))
 #+end_src
 
-* Term
+* Term + Shell
+** vterm
 
 Set default vterm shell
 #+begin_src elisp
@@ -170,14 +171,17 @@ Browse shell history in vterm
  :n "=" #'vterm-send-down)
 #+end_src
 
-* Other nice things
-** Custom function to edit the zsh .env file
+** zsh environment quick edit
 
+Key bindings to edit the .zshrc and .env files
 #+begin_src elisp
-(defun edit-env ()
-  "Edit the .env file"
-  (interactive)
-  (find-file-other-window (expand-file-name "~/.env")))
-
-(map! :leader :desc "Edit .env" :n "fv" #'edit-env)
+(map! :leader
+      :desc "Edit .env" :n "fv"
+      (lambda ()
+          (interactive)
+          (find-file-other-window (expand-file-name "~/.env")))
+      :desc "Edit .zshrc" :n "fz"
+      (lambda ()
+          (interactive)
+          (find-file-other-window (expand-file-name "../zsh/.zshrc" doom-private-dir))))
 #+end_src
