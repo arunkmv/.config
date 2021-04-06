@@ -4,7 +4,7 @@
 
 * Global
 ** General
-#+begin_src elisp
+#+begin_src emacs-lisp
 (setq
  doom-font (font-spec :family "Source Code Pro for Powerline" :size 17 :weight 'Regular)
  doom-theme 'doom-gruvbox-mod
@@ -17,32 +17,32 @@
 
 ** Battery and time
 Display battery and time in modeline
-#+begin_src elisp
+#+begin_src emacs-lisp
 (display-battery-mode 1)
 (display-time-mode 1)
 #+end_src
 
 ** Startup
 Maximized screen on startup, keeping this here for later
-#+begin_src elisp
+#+begin_src emacs-lisp
 ;;(add-to-list 'initial-frame-alist '(fullscreen . maximized))
 #+end_src
 
 Fullscreen on startup
-#+begin_src elisp
+#+begin_src emacs-lisp
 (toggle-frame-fullscreen)
 #+end_src
 
 ** Treemacs
 Use default treemacs theme instead of the doom-atom theme
-#+begin_src elisp
+#+begin_src emacs-lisp
 (when (featurep! :ui treemacs)
   (remove-hook 'doom-load-theme-hook #'doom-themes-treemacs-config))
 #+end_src
 
 ** Dired
 Change dired's default behaviour of creating new buffers
-#+begin_src elisp
+#+begin_src emacs-lisp
 (map!
  :map dired-mode-map
  :n "-" (lambda () (interactive) (find-alternate-file "..")))
@@ -50,24 +50,25 @@ Change dired's default behaviour of creating new buffers
 
 ** Projectile
 Keep projectile from adding new projects everytime a directory is opened
-#+begin_src elisp
+#+begin_src emacs-lisp
 (setq projectile-track-known-projects-automatically nil)
 #+end_src
 
 * Prog mode
 ** Python
 
-#+begin_src elisp
+#+begin_src emacs-lisp
 (setq lsp-log-io t
-      lsp-python-ms-extra-paths ["./src/python" "./configs"]
-      conda-env-home-directory (expand-file-name "~/.conda"))
+      lsp-python-ms-extra-paths ["./src/python" "./configs"])
 
-(custom-set-variables
- '(conda-anaconda-home (getenv "CONDA_HOME")))
+(after! python
+  (setq conda-env-home-directory (expand-file-name "~/.conda"))
+  (custom-set-variables
+   '(conda-anaconda-home (getenv "CONDA_HOME"))))
 #+end_src
 
 ** C/C++
-#+begin_src elisp
+#+begin_src emacs-lisp
 (after! lsp-clients
   (set-lsp-priority! 'clangd 1))  ; ccls has priority 0
 
@@ -81,23 +82,23 @@ Keep projectile from adding new projects everytime a directory is opened
 * Org mode
 
 Set the default org directory
-#+begin_src elisp
+#+begin_src emacs-lisp
 (setq org-directory "~/Org/")
 #+end_src
 
 ** Org agenda niceties
-*** Customize todo keywords
 
-#+begin_src elisp
+Customize todo keywords
+#+begin_src emacs-lisp
 (after! org
   (setq org-todo-keywords '((sequence "TODO(t)" "INPROGRESS(i)" "PARKED(p)" "|" "DONE(d)" "KILLED(k)")))
-
+  
   (with-no-warnings
-    (custom-declare-face '+org-todo-todo `((t (:foreground ,(doom-color 'yellow) :inherit (bold-italic org-todo)))) "")
-    (custom-declare-face '+org-todo-inprogress `((t (:foreground ,(doom-color 'violet) :inherit (bold-italic org-todo)))) "")
-    (custom-declare-face '+org-todo-parked `((t (:foreground ,(doom-color 'orange) :inherit (bold-italic org-todo)))) "")
-    (custom-declare-face '+org-todo-done `((t (:foreground ,(doom-color 'green) :inherit (bold-italic org-todo)))) "")
-    (custom-declare-face '+org-todo-killed `((t (:foreground ,(doom-color 'red) :inherit (bold-italic org-todo)))) ""))
+    (custom-declare-face '+org-todo-todo `((t (:foreground "#fabd2f" :inherit (bold-italic org-todo)))) "")
+    (custom-declare-face '+org-todo-inprogress `((t (:foreground "#d3869b" :inherit (bold-italic org-todo)))) "")
+    (custom-declare-face '+org-todo-parked `((t (:foreground "#fe8019" :inherit (bold-italic org-todo)))) "")
+    (custom-declare-face '+org-todo-done `((t (:foreground "#b8bb26" :inherit (bold-italic org-todo)))) "")
+    (custom-declare-face '+org-todo-killed `((t (:foreground "#fb4934" :inherit (bold-italic org-todo)))) ""))
 
   (setq org-todo-keyword-faces
         '(("TODO" . +org-todo-todo)
@@ -107,26 +108,26 @@ Set the default org directory
           ("KILLED" . +org-todo-killed))))
 #+end_src
 
-*** Fancy priority icons
-
-#+begin_src elisp
+Fancy priority icons
+#+begin_src emacs-lisp
 (use-package! org-fancy-priorities
   :hook (org-mode . org-fancy-priorities-mode)
   :hook (org-agenda-mode . org-fancy-priorities-mode)
   :config (setq org-fancy-priorities-list '("■" "■" "■")))
 #+end_src
 
-*** Right align org tags
-
-#+begin_src elisp
+Right align org tags
+#+begin_src emacs-lisp
 (after! org
   (setq org-tags-column 60))
 #+end_src
 
+**** TODO Figure out why doom-color does not work for custom org todo faces
+
 ** Zotero integration
 
 Configure zotxt-emacs for better zotero integration
-#+begin_src elisp
+#+begin_src emacs-lisp
 (add-hook! 'org-mode-hook (lambda () (org-zotxt-mode 1)))
 (after! org
   (add-to-list 'org-file-apps '("\\.pdf\\'" . emacs)))
@@ -146,7 +147,7 @@ Configure zotxt-emacs for better zotero integration
 
 ** LaTeX and Beamer export
 
-#+begin_src elisp
+#+begin_src emacs-lisp
 (add-hook! 'org-mode-hook 'org-beamer-mode)
 (require 'ox-latex)
 
@@ -159,12 +160,12 @@ Configure zotxt-emacs for better zotero integration
 ** vterm
 
 Set default vterm shell
-#+begin_src elisp
+#+begin_src emacs-lisp
  (setq vterm-shell "/bin/zsh")
 #+end_src
 
 Browse shell history in vterm
-#+begin_src elisp
+#+begin_src emacs-lisp
 (map!
  :map vterm-mode-map
  :n "-" #'vterm-send-up
@@ -174,7 +175,7 @@ Browse shell history in vterm
 ** zsh environment quick edit
 
 Key bindings to edit the .zshrc and .env files
-#+begin_src elisp
+#+begin_src emacs-lisp
 (map! :leader
       :desc "Edit .env" :n "fv"
       (lambda ()
