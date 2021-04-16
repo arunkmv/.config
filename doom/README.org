@@ -4,6 +4,7 @@
 
 * Global
 ** General
+
 #+begin_src emacs-lisp
 (setq
  doom-font (font-spec :family "Source Code Pro for Powerline" :size 17 :weight 'Regular)
@@ -16,6 +17,7 @@
 #+end_src
 
 ** Battery and time
+
 Display battery and time in modeline
 #+begin_src emacs-lisp
 (display-battery-mode 1)
@@ -23,6 +25,7 @@ Display battery and time in modeline
 #+end_src
 
 ** Startup
+
 Maximized screen on startup, keeping this here for later
 #+begin_src emacs-lisp
 ;;(add-to-list 'initial-frame-alist '(fullscreen . maximized))
@@ -34,6 +37,7 @@ Fullscreen on startup
 #+end_src
 
 ** Treemacs
+
 Use default treemacs theme instead of the doom-atom theme
 #+begin_src emacs-lisp
 (when (featurep! :ui treemacs)
@@ -41,6 +45,7 @@ Use default treemacs theme instead of the doom-atom theme
 #+end_src
 
 ** Dired
+
 Change dired's default behaviour of creating new buffers
 #+begin_src emacs-lisp
 (map!
@@ -49,12 +54,14 @@ Change dired's default behaviour of creating new buffers
 #+end_src
 
 ** Projectile
+
 Keep projectile from adding new projects everytime a directory is opened
 #+begin_src emacs-lisp
 (setq projectile-track-known-projects-automatically nil)
 #+end_src
 
 ** Dashboard
+
 Hide cursor and turn off line highlighting in dashboard
 #+begin_src emacs-lisp
 (setq-hook! '+doom-dashboard-mode-hook hl-line-mode -1)
@@ -67,6 +74,7 @@ Hide the dashboard menu
 #+end_src
 
 *** Fancy splash image
+
 Fancy splash image yanked from [[https://github.com/tecosaur/emacs-config/blob/master/config.org#splash-screen][here]]
 #+begin_src emacs-lisp
 (defvar fancy-splash-image-template
@@ -164,6 +172,15 @@ Fancy splash image yanked from [[https://github.com/tecosaur/emacs-config/blob/m
 (add-hook 'doom-load-theme-hook #'set-appropriate-splash)
 #+end_src
 
+** Modeline
+
+Key bindings to toggle modeline
+#+begin_src emacs-lisp
+(map! :leader
+      :desc "Modeline" :n "tm"
+      #'doom-modeline-mode)
+#+end_src
+
 * Prog mode
 ** Python
 
@@ -178,6 +195,7 @@ Fancy splash image yanked from [[https://github.com/tecosaur/emacs-config/blob/m
 #+end_src
 
 ** C/C++
+
 #+begin_src emacs-lisp
 (after! lsp-clients
   (set-lsp-priority! 'clangd 1))  ; ccls has priority 0
@@ -257,6 +275,7 @@ Configure zotxt-emacs for better zotero integration
 
 ** LaTeX and Beamer export
 
+Setup latex and beamer export
 #+begin_src emacs-lisp
 (add-hook! 'org-mode-hook 'org-beamer-mode)
 (require 'ox-latex)
