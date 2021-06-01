@@ -181,13 +181,14 @@ Fancy splash image yanked from [[https://github.com/tecosaur/emacs-config/blob/m
 
 Change faces of evil indicators
 #+begin_src emacs-lisp
-(set-face-attribute 'doom-modeline-evil-emacs-state nil :background (doom-color 'yellow) :foreground (doom-color 'base0))
-(set-face-attribute 'doom-modeline-evil-normal-state nil :background (doom-color 'green) :foreground (doom-color 'base0))
-(set-face-attribute 'doom-modeline-evil-insert-state nil :background (doom-color 'dark-blue) :foreground (doom-color 'fg))
-(set-face-attribute 'doom-modeline-evil-visual-state nil :background (doom-color 'orange) :foreground (doom-color 'base0))
-(set-face-attribute 'doom-modeline-evil-motion-state nil :background (doom-color 'violet) :foreground (doom-color 'fg))
-(set-face-attribute 'doom-modeline-evil-operator-state nil :background (doom-color 'dark-cyan) :foreground (doom-color 'fg))
-(set-face-attribute 'doom-modeline-evil-replace-state nil :background (doom-color 'magenta) :foreground (doom-color 'fg))
+(custom-set-faces!
+  `(doom-modeline-evil-emacs-state :background ,(doom-color 'violet) :foreground ,(doom-color 'base0))
+  `(doom-modeline-evil-normal-state :background ,(doom-color 'green) :foreground ,(doom-color 'base0))
+  `(doom-modeline-evil-insert-state :background ,(doom-color 'dark-blue) :foreground ,(doom-color 'fg))
+  `(doom-modeline-evil-visual-state :background ,(doom-color 'orange) :foreground ,(doom-color 'base0))
+  `(doom-modeline-evil-motion-state :background ,(doom-color 'red) :foreground ,(doom-color 'fg))
+  `(doom-modeline-evil-operator-state :background ,(doom-color 'yellow) :foreground ,(doom-color 'base0))
+  `(doom-modeline-evil-replace-state :background ,(doom-color 'magenta) :foreground ,(doom-color 'fg)))
 #+end_src
 
 Key binding to toggle modeline
