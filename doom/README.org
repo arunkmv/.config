@@ -11,9 +11,7 @@
  doom-theme 'doom-gruvbox-mod
  default-directory "~"
  display-line-numbers-type 'relative
- doom-modeline-buffer-encoding nil
  display-time-default-load-average nil)
- ;;+doom-dashboard-banner-file (expand-file-name "emacs_logo.png" doom-private-dir))
 #+end_src
 
 ** Battery and time
@@ -174,14 +172,67 @@ Fancy splash image yanked from [[https://github.com/tecosaur/emacs-config/blob/m
 
 ** Modeline
 
-Key bindings to toggle modeline
+#+begin_src emacs-lisp
+(setq
+ doom-modeline-buffer-encoding nil
+ doom-modeline-major-mode-icon t
+ doom-modeline-modal-icon nil)
+#+end_src
+
+Change faces of evil indicators
+#+begin_src emacs-lisp
+(set-face-attribute 'doom-modeline-evil-emacs-state nil :background (doom-color 'yellow) :foreground (doom-color 'base0))
+(set-face-attribute 'doom-modeline-evil-normal-state nil :background (doom-color 'green) :foreground (doom-color 'base0))
+(set-face-attribute 'doom-modeline-evil-insert-state nil :background (doom-color 'dark-blue) :foreground (doom-color 'fg))
+(set-face-attribute 'doom-modeline-evil-visual-state nil :background (doom-color 'orange) :foreground (doom-color 'base0))
+(set-face-attribute 'doom-modeline-evil-motion-state nil :background (doom-color 'violet) :foreground (doom-color 'fg))
+(set-face-attribute 'doom-modeline-evil-operator-state nil :background (doom-color 'dark-cyan) :foreground (doom-color 'fg))
+(set-face-attribute 'doom-modeline-evil-replace-state nil :background (doom-color 'magenta) :foreground (doom-color 'fg))
+#+end_src
+
+Key binding to toggle modeline
 #+begin_src emacs-lisp
 (map! :leader
       :desc "Modeline" :n "tm"
       #'doom-modeline-mode)
 #+end_src
 
+*** TODO Change `doom-modeline-buffer-file-name` based on window size
+
+** Evil mode
+
+#+begin_src emacs-lisp
+(setq-default
+ evil-emacs-state-tag          " E "
+ evil-normal-state-tag         " N "
+ evil-insert-state-tag         " I "
+ evil-visual-char-tag          " V "
+ evil-visual-line-tag          " VL "
+ evil-visual-screen-line-tag   " VSL "
+ evil-visual-block-tag         " VB "
+ evil-motion-state-tag         " M "
+ evil-operator-state-tag       " O "
+ evil-replace-state-tag        " R ")
+#+end_src
+
 * Prog mode
+** LSP mode
+
+Disable doc on cursor hover
+#+begin_src emacs-lisp
+(add-hook 'lsp-ui-doc-mode-hook
+            (lambda ()
+              (when lsp-ui-doc-mode
+                (remove-hook 'post-command-hook #'lsp-ui-doc--make-request t))))
+#+end_src
+
+Key bindings to glance doc
+#+begin_src emacs-lisp
+(map!
+ :map lsp-ui-doc-mode-map
+ :n "gh" #'lsp-ui-doc-glance)
+#+end_src
+
 ** Python
 
 #+begin_src emacs-lisp
