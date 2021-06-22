@@ -273,11 +273,11 @@ Customize todo keywords
 (after! org
   (setq org-todo-keywords '((sequence "TODO(t)" "INPROGRESS(i)" "PARKED(p)" "|" "DONE(d)" "KILLED(k)")))
 
-  (defface +org-todo-todo '((t)) "")
-  (defface +org-todo-inprogress '((t)) "")
-  (defface +org-todo-parked '((t)) "")
-  (defface +org-todo-done '((t)) "")
-  (defface +org-todo-killed '((t)) "")
+  (defface +org-todo-todo '((t)) "Face for org todo keyword TODO")
+  (defface +org-todo-inprogress '((t)) "Face for org todo keyword INPROGRESS")
+  (defface +org-todo-parked '((t)) "Face for org todo keyword PARKED")
+  (defface +org-todo-done '((t)) "Face for org todo keyword DONE")
+  (defface +org-todo-killed '((t)) "Face for org todo keyword KILLED")
 
   (custom-set-faces!
     `(+org-todo-todo :foreground ,(doom-color 'yellow) :inherit (bold-italic org-todo))
@@ -307,8 +307,6 @@ Right align org tags
 (after! org
   (setq org-tags-column 60))
 #+end_src
-
-**** TODO Figure out why doom-color does not work for custom org todo faces
 
 ** Zotero integration
 
