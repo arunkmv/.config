@@ -36,7 +36,7 @@ Fullscreen on startup
 
 ** Treemacs
 
-Use default treemacs theme instead of the doom-atom theme
+Use default treemacs theme instead of the doom theme treemacs extension
 #+begin_src emacs-lisp
 (when (featurep! :ui treemacs)
   (remove-hook 'doom-load-theme-hook #'doom-themes-treemacs-config))
@@ -237,7 +237,7 @@ Key bindings to glance doc
 ** Python
 
 #+begin_src emacs-lisp
-(setq lsp-log-io t
+(setq lsp-log-io nil
       lsp-python-ms-extra-paths ["./src/python" "./configs"])
 
 (after! python
@@ -261,9 +261,9 @@ Key bindings to glance doc
 
 * Org mode
 
-Set the default org directory
 #+begin_src emacs-lisp
-(setq org-directory "~/Org/")
+(setq org-directory "~/Org/"
+      org-startup-folded 'content)
 #+end_src
 
 ** Org agenda niceties
@@ -272,13 +272,19 @@ Customize todo keywords
 #+begin_src emacs-lisp
 (after! org
   (setq org-todo-keywords '((sequence "TODO(t)" "INPROGRESS(i)" "PARKED(p)" "|" "DONE(d)" "KILLED(k)")))
-  
-  (with-no-warnings
-    (custom-declare-face '+org-todo-todo `((t (:foreground "#fabd2f" :inherit (bold-italic org-todo)))) "")
-    (custom-declare-face '+org-todo-inprogress `((t (:foreground "#d3869b" :inherit (bold-italic org-todo)))) "")
-    (custom-declare-face '+org-todo-parked `((t (:foreground "#fe8019" :inherit (bold-italic org-todo)))) "")
-    (custom-declare-face '+org-todo-done `((t (:foreground "#b8bb26" :inherit (bold-italic org-todo)))) "")
-    (custom-declare-face '+org-todo-killed `((t (:foreground "#fb4934" :inherit (bold-italic org-todo)))) ""))
+
+  (defface +org-todo-todo '((t)) "")
+  (defface +org-todo-inprogress '((t)) "")
+  (defface +org-todo-parked '((t)) "")
+  (defface +org-todo-done '((t)) "")
+  (defface +org-todo-killed '((t)) "")
+
+  (custom-set-faces!
+    `(+org-todo-todo :foreground ,(doom-color 'yellow) :inherit (bold-italic org-todo))
+    `(+org-todo-inprogress :foreground ,(doom-color 'violet) :inherit (bold-italic org-todo))
+    `(+org-todo-parked :foreground ,(doom-color 'orange) :inherit (bold-italic org-todo))
+    `(+org-todo-done :foreground ,(doom-color 'green) :inherit (bold-italic org-todo))
+    `(+org-todo-killed :foreground ,(doom-color 'red) :inherit (bold-italic org-todo)))
 
   (setq org-todo-keyword-faces
         '(("TODO" . +org-todo-todo)
@@ -323,6 +329,12 @@ Configure zotxt-emacs for better zotero integration
        :desc "Link to selected item" "i" #'org-zotxt-insert-current-selection
        :desc "Link to an item"       "I" #'org-zotxt-insert-reference-link
        :desc "Open link"             "a" #'org-zotxt-open-attachment))
+
+(after! (org zotxt)
+  (org-link-set-parameters "zotero"
+                           :face `(:foreground ,(doom-color 'red)
+                                   :weight bold
+                                   :slant italic)))
 #+end_src
 
 ** LaTeX and Beamer export
