@@ -2,14 +2,19 @@
 
 #+HTML:<div align=center><p><img alt="Emacs Logo" width="150" height="150" src="emacs_logo.png"></p></div>
 
-* Global
-** General
+* General
+** Defaults
+
+#+begin_src emacs-lisp
+(setq default-directory "~")
+#+end_src
+
+** Appearance
 
 #+begin_src emacs-lisp
 (setq
  doom-font (font-spec :family "Source Code Pro for Powerline" :size 17 :weight 'Regular)
  doom-theme 'doom-gruvbox-mod
- default-directory "~"
  display-line-numbers-type 'relative
  display-time-default-load-average nil)
 #+end_src
