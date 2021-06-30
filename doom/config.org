@@ -65,7 +65,7 @@ A literate init.el. This provides modular configurability for Doom. Lets you ena
 #+name: doom-completion
 #+begin_src emacs-lisp
 company           ; the ultimate code completion backend
-;;helm              ; the *other* search engine for love and life
+helm              ; the *other* search engine for love and life
 ;;ido               ; the other *other* search engine...
 ivy               ; a search engine for love and life
 #+end_src
@@ -214,7 +214,7 @@ markdown          ; writing docs for people to ignore
 ;;nim               ; python + lisp at the speed of c
 ;;nix               ; I hereby declare "nix geht mehr!"
 ;;ocaml             ; an objective camel
-org               ; organize your plain life in plain text
+(org +roam)               ; organize your plain life in plain text
 ;;php               ; perl's insecure younger brother
 ;;plantuml          ; diagrams for confusing people more
 ;;purescript        ; javascript, but functional
@@ -279,6 +279,16 @@ Zotero integration with org-mode
 Fancy org-mode priorities
 #+begin_src emacs-lisp
 (package! org-fancy-priorities)
+#+end_src
+
+Org roam server to view roam graph
+#+begin_src emacs-lisp
+(package! org-roam-server)
+#+end_src
+
+Org ref for easy reference management
+#+begin_src emacs-lisp
+(package! org-ref)
 #+end_src
 
 * General
@@ -526,8 +536,10 @@ Key bindings to glance doc
 
 * Org mode
 #+begin_src emacs-lisp
-(setq org-directory "~/Org/"
-      org-startup-folded 'content)
+(after! org
+  (setq org-directory "~/Org/"
+        org-startup-folded 'content)
+  (add-to-list 'org-file-apps '("\\.pdf\\'" . emacs)))
 #+end_src
 
 ** Org agenda niceties
@@ -570,25 +582,48 @@ Right align org tags
 (after! org
   (setq org-tags-column 60))
 #+end_src
+** Org-ref
+Require org-ref (no hooks or modes)
+#+begin_src emacs-lisp
+(require 'org-ref)
+#+end_src
+
+Remap refile keys for more convenient org-ref keymap
+#+begin_src emacs-lisp
+(map! :map org-mode-map
+      :localleader
+      (:prefix ("R" . "refile")
+       "." #'+org/refile-to-current-file
+       "c" #'+org/refile-to-running-clock
+       "l" #'+org/refile-to-last-location
+       "f" #'+org/refile-to-file
+       "o" #'+org/refile-to-other-window
+       "O" #'+org/refile-to-other-buffer
+       "v" #'+org/refile-to-visible
+       "r" #'org-refile) ; to all `org-refile-targets'
+      (:prefix ("r" . "org-ref")
+       "i" #'org-ref-helm-insert-cite-link
+       "a" #'org-zotxt-open-citelink-attachment ))
+#+end_src
 
 ** Zotero integration
 Configure zotxt-emacs for better zotero integration
 #+begin_src emacs-lisp
-(add-hook! 'org-mode-hook 'org-zotxt-mode)
-(after! org
-  (add-to-list 'org-file-apps '("\\.pdf\\'" . emacs)))
+(use-package! zotxt
+  :after org
+  :hook (org-mode . org-zotxt-mode)
+  :config
+  (defun org-zotxt-insert-current-selection ()
+    "Insert reference link for the currently selected item in Zotero"
+    (interactive)
+    (org-zotxt-insert-reference-link 4))
 
-(defun org-zotxt-insert-current-selection ()
-  "Insert reference link for the currently selected item in Zotero"
-  (interactive)
-  (org-zotxt-insert-reference-link 4))
-
-(map! :map org-mode-map
-      :localleader
-      (:prefix ("z" . "zotero")
-       :desc "Link to selected item" "i" #'org-zotxt-insert-current-selection
-       :desc "Link to an item"       "I" #'org-zotxt-insert-reference-link
-       :desc "Open link"             "a" #'org-zotxt-open-attachment))
+  (map! :map org-mode-map
+        :localleader
+        (:prefix ("z" . "zotero")
+         :desc "Link to selected item" "i" #'org-zotxt-insert-current-selection
+         :desc "Link to an item"       "I" #'org-zotxt-insert-reference-link
+         :desc "Open zotxt link"       "a" #'org-zotxt-open-attachment )))
 
 (after! (org zotxt)
   (org-link-set-parameters "zotero"
@@ -597,16 +632,67 @@ Configure zotxt-emacs for better zotero integration
                                    :slant italic)))
 #+end_src
 
+A convenience function to open org-ref citelinks using zotxt.
+#+begin_src emacs-lisp
+(after! (org zotxt)
+  (require 'deferred)
+
+  (defun org-zotxt-open-citelink-attachment (&optional arg)
+    "Open attachment of Zotero items with the org-ref citelink."
+
+    (interactive "P")
+    (let ((citekey (org-ref-get-bibtex-key-under-cursor)))
+      (deferred:$
+        (zotxt--request-deferred
+         (format "%s/items" zotxt-url-base)
+         :params `(("citekey" . ,citekey) ("format" . "paths"))
+         :parser 'json-read)
+        (deferred:nextc it
+          (lambda (response)
+            (let ((paths (cdr (assq 'paths (elt (request-response-data response) 0)))))
+              (org-open-file (org-zotxt-choose-path paths)))))
+        (deferred:error it #'zotxt--deferred-handle-error)
+        (if zotxt--debug-sync (deferred:sync! it))))))
+
+#+end_src
+
+Add zotxt citelink function as org-ref helm user candidate
+#+begin_src emacs-lisp
+(setq org-ref-helm-user-candidates '())
+(add-to-list
+ 'org-ref-helm-user-candidates
+ '("Open pdf with Zotero" . org-zotxt-open-citelink-attachment) t)
+#+end_src
+
 ** LaTeX and Beamer export
 Setup latex and beamer export
 #+begin_src emacs-lisp
 (add-hook! 'org-mode-hook 'org-beamer-mode)
-(require 'ox-latex)
 
+(require 'ox-latex)
 (setq org-latex-listings t)
 (add-to-list 'org-latex-packages-alist '("" "listings"))
 (add-to-list 'org-latex-packages-alist '("" "color"))
+
+(setq org-latex-pdf-process
+      '("pdflatex -interaction nonstopmode -output-directory %o %f"
+        "bibtex %b"
+        "pdflatex -interaction nonstopmode -output-directory %o %f"
+        "pdflatex -interaction nonstopmode -output-directory %o %f"))
 #+end_src
+
+** Org roam
+Setup org roam
+#+begin_src emacs-lisp
+(after! org-roam
+  (setq org-roam-directory "~/Org/roam"))
+#+end_src
+
+Start org-roam-server on startup
+#+begin_src emacs-lisp
+;(org-roam-server-mode)
+#+end_src
+
 
 * Term + Shell
 ** vterm
