@@ -65,15 +65,15 @@ A literate init.el. This provides modular configurability for Doom. Lets you ena
 #+name: doom-completion
 #+begin_src emacs-lisp
 company           ; the ultimate code completion backend
-helm              ; the *other* search engine for love and life
+;;helm              ; the *other* search engine for love and life
 ;;ido               ; the other *other* search engine...
-ivy               ; a search engine for love and life
+(ivy +prescient +icons)               ; a search engine for love and life
 #+end_src
 
 *** UI
 #+name: doom-ui
 #+begin_src emacs-lisp
-;;deft              ; notational velocity for Emacs
+deft              ; notational velocity for Emacs
 doom              ; what makes DOOM look the way it does
 doom-dashboard    ; a nifty splash screen for Emacs
 doom-quit         ; DOOM quit-message prompts when you quit Emacs
@@ -281,8 +281,10 @@ Fancy org-mode priorities
 (package! org-fancy-priorities)
 #+end_src
 
-Org roam server to view roam graph
+Org-roam-bibtex and server for better org-roam integration
 #+begin_src emacs-lisp
+(unpin! org-roam)
+(package! org-roam-bibtex)
 (package! org-roam-server)
 #+end_src
 
@@ -299,7 +301,9 @@ Lexical binding to make thing run slightly faster.
 
 ** Defaults
 #+begin_src emacs-lisp
-(setq default-directory "~")
+(setq default-directory "~"
+      mouse-wheel-tilt-scroll 't)
+(custom-set-faces! `(link :foreground ,(doom-color 'violet) :weight bold :underline t ))
 (toggle-frame-fullscreen)
 #+end_src
 
@@ -477,27 +481,47 @@ Key binding to toggle modeline
       #'doom-modeline-mode)
 #+end_src
 
-*** TODO Change `doom-modeline-buffer-file-name` based on window size
+*** TODO Change `doom-modeline-buffer-file-name' based on window size
+** PDF tools
+Open in midnight dark mode
+#+begin_src emacs-lisp
+(add-hook 'pdf-tools-enabled-hook 'pdf-view-midnight-minor-mode)
+(setq-default pdf-view-display-size 'fit-page)
+#+end_src
+
+Key bindings to scroll to horizontal extremes when zoomed in
+#+begin_src emacs-lisp
+(map! :map pdf-view-mode-map
+      :desc "Scroll to extreme left of page" :n "C-c h" (lambda ()
+                                                          (interactive)
+                                                          (image-set-window-hscroll 0))
+      :desc "Scroll to extreme right of page" :n "C-c l" (lambda ()
+                                                           (interactive)
+                                                           (image-forward-hscroll 1000)))
+#+end_src
 
 ** Evil mode
+Evil vim state indicators
 #+begin_src emacs-lisp
-(setq-default
- evil-emacs-state-tag          " E "
- evil-normal-state-tag         " N "
- evil-insert-state-tag         " I "
- evil-visual-char-tag          " V "
- evil-visual-line-tag          " VL "
- evil-visual-screen-line-tag   " VSL "
- evil-visual-block-tag         " VB "
- evil-motion-state-tag         " M "
- evil-operator-state-tag       " O "
- evil-replace-state-tag        " R ")
+(after! evil
+  (setq-default
+   evil-emacs-state-tag          " E "
+   evil-normal-state-tag         " N "
+   evil-insert-state-tag         " I "
+   evil-visual-char-tag          " V "
+   evil-visual-line-tag          " VL "
+   evil-visual-screen-line-tag   " VSL "
+   evil-visual-block-tag         " VB "
+   evil-motion-state-tag         " M "
+   evil-operator-state-tag       " O "
+   evil-replace-state-tag        " R "))
 #+end_src
 
 * Prog mode
 ** LSP mode
 Disable doc on cursor hover
 #+begin_src emacs-lisp
+(setq lsp-log-io nil)
 (add-hook 'lsp-ui-doc-mode-hook
             (lambda ()
               (when lsp-ui-doc-mode
@@ -513,8 +537,7 @@ Key bindings to glance doc
 
 ** Python
 #+begin_src emacs-lisp
-(setq lsp-log-io nil
-      lsp-python-ms-extra-paths ["./src/python" "./configs"])
+(setq lsp-python-ms-extra-paths ["./src/python" "./configs"])
 
 (after! python
   (setq conda-env-home-directory (expand-file-name "~/.conda"))
@@ -537,12 +560,19 @@ Key bindings to glance doc
 * Org mode
 #+begin_src emacs-lisp
 (after! org
-  (setq org-directory "~/Org/"
-        org-startup-folded 'content)
+  (setq org-startup-folded 'content)
   (add-to-list 'org-file-apps '("\\.pdf\\'" . emacs)))
 #+end_src
 
-** Org agenda niceties
+** Directories and files
+#+begin_src emacs-lisp
+(after! org
+  (setq org-directory (concat (getenv "HOME") "/Org")
+        org_notes-directory (concat org-directory "/research/notes")
+        zotero_bib-file (concat org-directory "/research/references.bib")))
+#+end_src
+
+** Org agenda
 Customize todo keywords
 #+begin_src emacs-lisp
 (after! org
@@ -579,19 +609,39 @@ Fancy priority icons
 
 Right align org tags
 #+begin_src emacs-lisp
-(after! org
-  (setq org-tags-column 60))
+(setq org-tags-column 60)
 #+end_src
-** Org-ref
-Require org-ref (no hooks or modes)
+
+** Deft
 #+begin_src emacs-lisp
-(require 'org-ref)
+(after! deft
+  (setq deft-directory org_notes-directory))
+#+end_src
+
+** Helm Bibtex
+#+begin_src emacs-lisp
+(after! helm-bibtex
+  (setq bibtex-completion-notes-path org_notes-directory
+        bibtex-completion-bibliography zotero_bib-file
+        bibtex-completion-pdf-field "file"))
+#+end_src
+
+** Org-ref
+equire org-ref and set defaults
+#+begin_src emacs-lisp
+(require 'org-ref) ;For some reason `use-package!' does not work for org-ref, TODO Figure out why
+(setq org-ref-open-pdf-function 'org-ref-open-pdf-at-point
+      org-ref-get-pdf-filename-function 'org-ref-get-pdf-filename-helm-bibtex
+      org-ref-notes-directory org_notes-directory
+      org-ref-default-bibliography zotero_bib-file
+      org-ref-notes-function 'orb-edit-notes)
 #+end_src
 
 Remap refile keys for more convenient org-ref keymap
 #+begin_src emacs-lisp
 (map! :map org-mode-map
       :localleader
+      "r" nil
       (:prefix ("R" . "refile")
        "." #'+org/refile-to-current-file
        "c" #'+org/refile-to-running-clock
@@ -602,8 +652,19 @@ Remap refile keys for more convenient org-ref keymap
        "v" #'+org/refile-to-visible
        "r" #'org-refile) ; to all `org-refile-targets'
       (:prefix ("r" . "org-ref")
-       "i" #'org-ref-helm-insert-cite-link
-       "a" #'org-zotxt-open-citelink-attachment ))
+       :desc "Insert citation"       "i" #'org-ref-helm-insert-cite-link
+       :desc "Insert reference link" "r" #'org-ref-helm-insert-ref-link
+       :desc "Insert label link"     "l" #'org-ref-helm-insert-label-link
+       :desc "Open citation PDF"     "o" #'org-ref-open-pdf-at-point))
+#+end_src
+
+An helm-bibtex keybinding to open PDFs
+#+begin_src emacs-lisp
+(after! helm-bibtex
+  (map! :map helm-map
+        "C-c C-o" (lambda ()
+                    (interactive)
+                    (helm-select-nth-action 1))))
 #+end_src
 
 ** Zotero integration
@@ -632,13 +693,13 @@ Configure zotxt-emacs for better zotero integration
                                    :slant italic)))
 #+end_src
 
-A convenience function to open org-ref citelinks using zotxt.
+A convenience function to open org-ref citelinks using zotxt
 #+begin_src emacs-lisp
 (after! (org zotxt)
   (require 'deferred)
 
   (defun org-zotxt-open-citelink-attachment (&optional arg)
-    "Open attachment of Zotero items with the org-ref citelink."
+    "Open attachment of Zotero items with the org-ref citelink"
 
     (interactive "P")
     (let ((citekey (org-ref-get-bibtex-key-under-cursor)))
@@ -664,6 +725,41 @@ Add zotxt citelink function as org-ref helm user candidate
  '("Open pdf with Zotero" . org-zotxt-open-citelink-attachment) t)
 #+end_src
 
+** Org roam
+Setup org roam
+#+begin_src emacs-lisp
+(after! org-roam
+  (setq org-roam-directory org_notes-directory)
+  (custom-set-faces! `(org-roam-link :foreground ,(doom-color 'violet) :weight bold :slant italic :underline t)))
+#+end_src
+
+Start org-roam-server on startup
+#+begin_src emacs-lisp
+(setq org-roam-server-port 9666)
+#+end_src
+
+Setup org-roam-bibtex
+#+begin_src emacs-lisp
+(use-package! org-roam-bibtex
+  :after org-roam
+  :hook (org-roam-mode . org-roam-bibtex-mode)
+  :config
+  (setq org-roam-bibtex-preformat-keywords
+   '("citekey" "title" "url" "file" "author-or-editor" "keywords"))
+  (setq orb-templates
+        '(("r" "ref" plain (function org-roam-capture--get-point)
+           ""
+           :file-name "${slug}"
+           :head "#+TITLE: ${citekey}: ${title}\n#+ROAM_KEY: ${ref}
+
+- tags ::
+- keywords :: ${keywords}
+
+\n* ${title}\n  :PROPERTIES:\n  :Custom_ID: ${citekey}\n  :URL: ${url}\n  :AUTHOR: ${author-or-editor}\n  :NOTER_DOCUMENT: %(orb-process-file-field \"${citekey}\")\n  :NOTER_PAGE: \n  :END:\n\n"
+
+           :unnarrowed t))))
+#+end_src
+
 ** LaTeX and Beamer export
 Setup latex and beamer export
 #+begin_src emacs-lisp
@@ -680,19 +776,6 @@ Setup latex and beamer export
         "pdflatex -interaction nonstopmode -output-directory %o %f"
         "pdflatex -interaction nonstopmode -output-directory %o %f"))
 #+end_src
-
-** Org roam
-Setup org roam
-#+begin_src emacs-lisp
-(after! org-roam
-  (setq org-roam-directory "~/Org/roam"))
-#+end_src
-
-Start org-roam-server on startup
-#+begin_src emacs-lisp
-;(org-roam-server-mode)
-#+end_src
-
 
 * Term + Shell
 ** vterm
