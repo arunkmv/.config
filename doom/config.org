@@ -214,7 +214,7 @@ markdown          ; writing docs for people to ignore
 ;;nim               ; python + lisp at the speed of c
 ;;nix               ; I hereby declare "nix geht mehr!"
 ;;ocaml             ; an objective camel
-(org +roam)               ; organize your plain life in plain text
+(org +roam +noter)               ; organize your plain life in plain text
 ;;php               ; perl's insecure younger brother
 ;;plantuml          ; diagrams for confusing people more
 ;;purescript        ; javascript, but functional
@@ -291,6 +291,11 @@ Org-roam-bibtex and server for better org-roam integration
 Org ref for easy reference management
 #+begin_src emacs-lisp
 (package! org-ref)
+#+end_src
+
+Beacon to never lose my cursor again
+#+begin_src emacs-lisp
+(package! beacon)
 #+end_src
 
 * General
@@ -516,6 +521,14 @@ Evil vim state indicators
    evil-operator-state-tag       " O "
    evil-replace-state-tag        " R "))
 #+end_src
+** Beacon
+#+begin_src emacs-lisp
+(beacon-mode t)
+
+(after! doom-themes
+  (setq beacon-color (doom-color 'orange)))
+
+#+end_src
 
 * Prog mode
 ** LSP mode
@@ -618,22 +631,15 @@ Right align org tags
   (setq deft-directory org_notes-directory))
 #+end_src
 
-** Helm Bibtex
-#+begin_src emacs-lisp
-(after! helm-bibtex
-  (setq bibtex-completion-notes-path org_notes-directory
-        bibtex-completion-bibliography zotero_bib-file
-        bibtex-completion-pdf-field "file"))
-#+end_src
-
 ** Org-ref
-equire org-ref and set defaults
+Require org-ref and set defaults
 #+begin_src emacs-lisp
 (require 'org-ref) ;For some reason `use-package!' does not work for org-ref, TODO Figure out why
 (setq org-ref-open-pdf-function 'org-ref-open-pdf-at-point
       org-ref-get-pdf-filename-function 'org-ref-get-pdf-filename-helm-bibtex
       org-ref-notes-directory org_notes-directory
       org-ref-default-bibliography zotero_bib-file
+      org-ref-cite-onclick-function 'org-ref-cite-click-helm
       org-ref-notes-function 'orb-edit-notes)
 #+end_src
 
@@ -658,13 +664,28 @@ Remap refile keys for more convenient org-ref keymap
        :desc "Open citation PDF"     "o" #'org-ref-open-pdf-at-point))
 #+end_src
 
-An helm-bibtex keybinding to open PDFs
+** Helm Bibtex
+Set defaults
 #+begin_src emacs-lisp
 (after! helm-bibtex
+  (setq bibtex-completion-notes-path org_notes-directory
+        bibtex-completion-bibliography zotero_bib-file
+        bibtex-completion-pdf-field "file"
+        bibtex-completion-edit-notes-function (lambda (keys)
+                                                (orb-edit-notes (car keys)))))
+#+end_src
+
+A helm keybinding to open helm-bibtex and open PDFs
+#+begin_src emacs-lisp
+(after! helm-bibtex
+  (map! :leader
+        :desc "Helm-bibtex" :n "ob"
+        #'helm-bibtex)
+
   (map! :map helm-map
         "C-c C-o" (lambda ()
                     (interactive)
-                    (helm-select-nth-action 1))))
+                    (helm-select-nth-action 1)))) ;; Action 1 corrosponds to open PDF in `org-ref-bibtex-completion-actions'
 #+end_src
 
 ** Zotero integration
@@ -744,20 +765,26 @@ Setup org-roam-bibtex
   :after org-roam
   :hook (org-roam-mode . org-roam-bibtex-mode)
   :config
-  (setq org-roam-bibtex-preformat-keywords
-   '("citekey" "title" "url" "file" "author-or-editor" "keywords"))
+  (setq orb-preformat-keywords
+   '("citekey" "title" "file" "author"))
   (setq orb-templates
         '(("r" "ref" plain (function org-roam-capture--get-point)
            ""
            :file-name "${slug}"
-           :head "#+TITLE: ${citekey}: ${title}\n#+ROAM_KEY: ${ref}
+           :head "#+TITLE: ${title}\n#+ROAM_KEY: ${ref}
 
 - tags ::
-- keywords :: ${keywords}
 
-\n* ${title}\n  :PROPERTIES:\n  :Custom_ID: ${citekey}\n  :URL: ${url}\n  :AUTHOR: ${author-or-editor}\n  :NOTER_DOCUMENT: %(orb-process-file-field \"${citekey}\")\n  :NOTER_PAGE: \n  :END:\n\n"
+\n* ${title}\n  :PROPERTIES:\n  :Custom_ID: ${citekey}\n  :AUTHOR: ${author}\n  :NOTER_DOCUMENT: %(orb-process-file-field \"${citekey}\")\n  :NOTER_PAGE: \n  :END:\n\n"
 
            :unnarrowed t))))
+#+end_src
+
+** Org noter
+Defaults for org noter
+#+begin_src emacs-lisp
+(after! org-noter
+  (setq org-noter-notes-search-path (list org_notes-directory)))
 #+end_src
 
 ** LaTeX and Beamer export
