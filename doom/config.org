@@ -214,11 +214,13 @@ markdown          ; writing docs for people to ignore
 ;;nim               ; python + lisp at the speed of c
 ;;nix               ; I hereby declare "nix geht mehr!"
 ;;ocaml             ; an objective camel
-(org +roam +noter)               ; organize your plain life in plain text
+(org +roam
+     +noter)               ; organize your plain life in plain text
 ;;php               ; perl's insecure younger brother
 ;;plantuml          ; diagrams for confusing people more
 ;;purescript        ; javascript, but functional
-(python +lsp +conda)           ; beautiful is better than ugly
+(python +lsp
+        +conda)           ; beautiful is better than ugly
 ;;qt                ; the 'cutest' gui framework ever
 ;;racket            ; a DSL for DSLs
 ;;raku              ; the artist formerly known as perl6
@@ -262,6 +264,7 @@ Configuration
 literate
 (default +bindings +smartparens)
 #+end_src
+
 ** Packages
 :PROPERTIES:
 :header-args:emacs-lisp: :tangle "packages.el" :comments no
@@ -293,13 +296,23 @@ Org ref for easy reference management
 (package! org-ref)
 #+end_src
 
+Doct for declarative org capture templates
+#+begin_src emacs-lisp
+(package! doct)
+#+end_src
+
 Beacon to never lose my cursor again
 #+begin_src emacs-lisp
 (package! beacon)
 #+end_src
 
+Org tree slide
+#+begin_src emacs-lisp
+(package! org-tree-slide)
+#+end_src
+
 * General
-Lexical binding to make thing run slightly faster.
+Lexical binding to make things run slightly faster.
 #+begin_src emacs-lisp
 ;;; config.el -*- lexical-binding: t; -*-
 #+end_src
@@ -315,7 +328,7 @@ Lexical binding to make thing run slightly faster.
 ** Appearance
 #+begin_src emacs-lisp
 (setq
- doom-font (font-spec :family "Source Code Pro for Powerline" :size 17 :weight 'Regular)
+ doom-font (font-spec :family "Source Code Pro for Powerline" :size 18 :weight 'Regular)
  doom-theme 'doom-gruvbox-mod
  display-line-numbers-type 'relative
  display-time-default-load-average nil)
@@ -505,6 +518,13 @@ Key bindings to scroll to horizontal extremes when zoomed in
                                                            (image-forward-hscroll 1000)))
 #+end_src
 
+Key bindings to move forward and back in pdf history
+#+begin_src emacs-lisp
+(map! :map pdf-view-mode-map
+       :desc "Forward" :n "ghf" #'pdf-history-forward
+       :desc "Backward" :n "ghb" #'pdf-history-backward)
+#+end_src
+
 ** Evil mode
 Evil vim state indicators
 #+begin_src emacs-lisp
@@ -521,13 +541,14 @@ Evil vim state indicators
    evil-operator-state-tag       " O "
    evil-replace-state-tag        " R "))
 #+end_src
+
 ** Beacon
 #+begin_src emacs-lisp
-(beacon-mode t)
-
-(after! doom-themes
-  (setq beacon-color (doom-color 'orange)))
-
+(use-package! beacon
+  :hook (doom-after-init-modules . beacon-mode)
+  :config
+  (after! doom-themes
+    (setq beacon-color (doom-color 'orange))))
 #+end_src
 
 * Prog mode
@@ -545,7 +566,7 @@ Key bindings to glance doc
 #+begin_src emacs-lisp
 (map!
  :map lsp-ui-doc-mode-map
- :n "gh" #'lsp-ui-doc-glance)
+ :desc "+lsp/hover" "gh" #'lsp-ui-doc-glance)
 #+end_src
 
 ** Python
@@ -560,14 +581,6 @@ Key bindings to glance doc
 
 ** C/C++
 #+begin_src emacs-lisp
-(after! lsp-clients
-  (set-lsp-priority! 'clangd 1))  ; ccls has priority 0
-
-(setq lsp-clients-clangd-args '("-j=3"
-                                "--background-index"
-                                "--clang-tidy"
-                                "--completion-style=detailed"
-                                "--header-insertion=never"))
 #+end_src
 
 * Org mode
@@ -579,10 +592,19 @@ Key bindings to glance doc
 
 ** Directories and files
 #+begin_src emacs-lisp
-(after! org
-  (setq org-directory (concat (getenv "HOME") "/Org")
-        org_notes-directory (concat org-directory "/research/notes")
-        zotero_bib-file (concat org-directory "/research/references.bib")))
+(setq org-directory (concat (getenv "HOME") "/Org")
+      org_notes-directory (concat org-directory "/research/notes")
+      zotero_bib-file (concat org-directory "/research/references.bib"))
+#+end_src
+
+Capture files
+#+begin_src emacs-lisp
+(setq todo-capture-file (concat org-directory "/todo.org"))
+#+end_src
+
+Use files for org-agneda
+#+begin_src emacs-lisp
+(setq org-agenda-files (list todo-capture-file))
 #+end_src
 
 ** Org agenda
@@ -625,13 +647,57 @@ Right align org tags
 (setq org-tags-column 60)
 #+end_src
 
+** Org capture
+Capture templates using doct
+#+begin_src emacs-lisp
+(use-package! doct
+  :commands (doct))
+
+(after! org-capture
+  (setq org-capture-templates
+        (doct `(("Tasks" :keys "t"
+                   :file todo-capture-file
+                   :prepend t
+                   :headline "Tasks"
+                   :type entry
+                   :template ("* TODO %? %^g%{extra}"
+                              "%i %a")
+                   :children (("General Task" :keys "t"
+                               :extra "")
+                              ("Task with deadline" :keys "d"
+                               :extra "\nDEADLINE: %^{Deadline:}t")
+                              ("Scheduled Task" :keys "s"
+                               :extra "\nSCHEDULED: %^{Start time:}t")))
+                ("Web resource" :keys "w"
+                 :file todo-capture-file
+                 :prepend t
+                 :type entry
+                 :template "* TODO [[%^{URL}][%^{Title}]]%? :%{url-type}:"
+                 :children (("Article" :keys "a"
+                             :headline "Articles"
+                             :url-type "article")
+                            ("Video" :keys "v"
+                             :headline "Videos"
+                             :url-type "video")
+                            ("Webpage" :keys "w"
+                             :headline "Webpage"
+                             :url-type "web")))
+                ("Note" :keys "n"
+                 :file todo-capture-file
+                 :prepend t
+                 :headline "Notes"
+                 :type entry
+                 :template ("* %?"
+                            "%i %a"))))))
+#+end_src
+
 ** Deft
 #+begin_src emacs-lisp
 (after! deft
   (setq deft-directory org_notes-directory))
 #+end_src
 
-** Org-ref
+** Org ref
 Require org-ref and set defaults
 #+begin_src emacs-lisp
 (require 'org-ref) ;For some reason `use-package!' does not work for org-ref, TODO Figure out why
@@ -685,7 +751,10 @@ A helm keybinding to open helm-bibtex and open PDFs
   (map! :map helm-map
         "C-c C-o" (lambda ()
                     (interactive)
-                    (helm-select-nth-action 1)))) ;; Action 1 corrosponds to open PDF in `org-ref-bibtex-completion-actions'
+                    (helm-select-nth-action 1)) ;; Action 1 corrosponds to open PDF in `org-ref-bibtex-completion-actions'
+        "C-c C-n" (lambda ()
+                    (interactive)
+                    (helm-select-nth-action 8)))) ;; Action 8 corrosponds to edit notes in `org-ref-bibtex-completion-actions'
 #+end_src
 
 ** Zotero integration
@@ -751,7 +820,28 @@ Setup org roam
 #+begin_src emacs-lisp
 (after! org-roam
   (setq org-roam-directory org_notes-directory)
-  (custom-set-faces! `(org-roam-link :foreground ,(doom-color 'violet) :weight bold :slant italic :underline t)))
+  (custom-set-faces! `(org-roam-link :foreground ,(doom-color 'violet) :weight bold :slant italic :underline t))
+#+end_src
+
+Prevent org roam from downcasing slug titles for better integration with org-roam-bibtex and org-noter (pdf filename = note filename = citekey)
+#+begin_src emacs-lisp
+  (defun org-roam--title-to-slug-without-downcasing (title)
+    "Convert TITLE to a filename-suitable slug (without downcasing)."
+    (cl-flet* ((nonspacing-mark-p (char)
+                                  (memq char org-roam-slug-trim-chars))
+               (strip-nonspacing-marks (s)
+                                       (ucs-normalize-NFC-string
+                                        (apply #'string (seq-remove #'nonspacing-mark-p
+                                                                    (ucs-normalize-NFD-string s)))))
+               (cl-replace (title pair)
+                           (replace-regexp-in-string (car pair) (cdr pair) title)))
+      (let* ((pairs `(("[^[:alnum:][:digit:]]" . "_")  ;; convert anything not alphanumeric
+                      ("__*" . "_")  ;; remove sequential underscores
+                      ("^_" . "")  ;; remove starting underscore
+                      ("_$" . ""))))  ;; remove ending underscore
+             (-reduce-from #'cl-replace (strip-nonspacing-marks title) pairs))))
+
+  (setq org-roam-title-to-slug-function #'org-roam--title-to-slug-without-downcasing))
 #+end_src
 
 Start org-roam-server on startup
@@ -784,7 +874,26 @@ Setup org-roam-bibtex
 Defaults for org noter
 #+begin_src emacs-lisp
 (after! org-noter
-  (setq org-noter-notes-search-path (list org_notes-directory)))
+  (setq org-noter-notes-window-location 'horizontal-split
+        org-noter-doc-split-fraction '(0.7 . 0.3)
+        org-noter-hide-other nil
+        org-noter-always-create-frame nil
+        org-noter-notes-search-path (list org_notes-directory))
+  (map!
+   :map org-noter-doc-mode-map
+   :leader
+   :desc "Insert note"
+   "m i" #'org-noter-insert-note
+   :desc "Insert precise note"
+   "m p" #'org-noter-insert-precise-note
+   :desc "Go to previous note"
+   "m k" #'org-noter-sync-prev-note
+   :desc "Go to next note"
+   "m j" #'org-noter-sync-next-note
+   :desc "Create skeleton"
+   "m s" #'org-noter-create-skeleton
+   :desc "Kill session"
+   "m q" #'org-noter-kill-session))
 #+end_src
 
 ** LaTeX and Beamer export
@@ -802,6 +911,11 @@ Setup latex and beamer export
         "bibtex %b"
         "pdflatex -interaction nonstopmode -output-directory %o %f"
         "pdflatex -interaction nonstopmode -output-directory %o %f"))
+#+end_src
+
+** Org-tree-slide
+#+begin_src emacs-lisp
+(use-package! org-tree-slide)
 #+end_src
 
 * Term + Shell

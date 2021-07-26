@@ -277,6 +277,7 @@ background contrast. All other values default to \"medium\"."
    ((outline-4 &override) :foreground violet)
    (org-ellipsis :underline nil :foreground orange)
    (org-tag :foreground yellow :bold nil)
+   (org-document-title :foreground orange :height 1.8 :bold t)
    ((org-block &override) :background bg-alt)
    ((org-block-begin-line &override) :background bg-alt)
    ((org-block-end-line &override) :background bg-alt)
