@@ -154,7 +154,7 @@ syntax              ; tasing you for every semicolon you forget
 ;;ein               ; tame Jupyter notebooks with emacs
 (eval +overlay)     ; run code, run (also, repls)
 ;;gist              ; interacting with github gists
-lookup              ; navigate your code and its documentation
+(lookup +dictionary)              ; navigate your code and its documentation
 lsp
 magit             ; a git porcelain for Emacs
 make              ; run make tasks from Emacs
@@ -286,8 +286,7 @@ Fancy org-mode priorities
 
 Org-roam-bibtex and server for better org-roam integration
 #+begin_src emacs-lisp
-(unpin! org-roam)
-(package! org-roam-bibtex)
+(package! org-roam-bibtex :pin "80a86980801ff233d7c12ae9efef589ffa53df67")
 (package! org-roam-server)
 #+end_src
 
@@ -320,9 +319,10 @@ Lexical binding to make things run slightly faster.
 ** Defaults
 #+begin_src emacs-lisp
 (setq default-directory "~"
+      locale-coding-system 'utf-8-unix
       mouse-wheel-tilt-scroll 't)
+
 (custom-set-faces! `(link :foreground ,(doom-color 'violet) :weight bold :underline t ))
-(toggle-frame-fullscreen)
 #+end_src
 
 ** Appearance
@@ -339,6 +339,11 @@ Display battery and time in modeline
 #+begin_src emacs-lisp
 (display-battery-mode 1)
 (display-time-mode 1)
+#+end_src
+
+*** Full screen
+#+begin_src emacs-lisp
+(toggle-frame-fullscreen)
 #+end_src
 
 *** Dashboard
@@ -512,10 +517,10 @@ Key bindings to scroll to horizontal extremes when zoomed in
 (map! :map pdf-view-mode-map
       :desc "Scroll to extreme left of page" :n "C-c h" (lambda ()
                                                           (interactive)
-                                                          (image-set-window-hscroll 0))
+                                                          (image-bol 1))
       :desc "Scroll to extreme right of page" :n "C-c l" (lambda ()
                                                            (interactive)
-                                                           (image-forward-hscroll 1000)))
+                                                           (image-eol 1)))
 #+end_src
 
 Key bindings to move forward and back in pdf history
@@ -568,7 +573,12 @@ Key bindings to glance doc
  :map lsp-ui-doc-mode-map
  :desc "+lsp/hover" "gh" #'lsp-ui-doc-glance)
 #+end_src
-
+** GDB
+#+begin_src emacs-lisp
+(after! gbd
+  (setq gdb-show-main t
+        gdb-many-windows t))
+#+end_src
 ** Python
 #+begin_src emacs-lisp
 (setq lsp-python-ms-extra-paths ["./src/python" "./configs"])
@@ -874,11 +884,12 @@ Setup org-roam-bibtex
 Defaults for org noter
 #+begin_src emacs-lisp
 (after! org-noter
-  (setq org-noter-notes-window-location 'horizontal-split
-        org-noter-doc-split-fraction '(0.7 . 0.3)
+  (setq org-noter-notes-window-location 'vertical-split
+        org-noter-doc-split-fraction '(0.2 . 0.8)
         org-noter-hide-other nil
         org-noter-always-create-frame nil
-        org-noter-notes-search-path (list org_notes-directory))
+        org-noter-notes-search-path (list org_notes-directory)
+        org-noter-separate-notes-from-heading nil)
   (map!
    :map org-noter-doc-mode-map
    :leader
@@ -922,7 +933,7 @@ Setup latex and beamer export
 ** vterm
 Set default vterm shell
 #+begin_src emacs-lisp
- (setq vterm-shell "/bin/zsh")
+(setq vterm-shell "/bin/zsh")
 #+end_src
 
 Browse shell history in vterm
