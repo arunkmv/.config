@@ -219,8 +219,7 @@ markdown          ; writing docs for people to ignore
 ;;php               ; perl's insecure younger brother
 ;;plantuml          ; diagrams for confusing people more
 ;;purescript        ; javascript, but functional
-(python +lsp
-        +conda)           ; beautiful is better than ugly
+(python +lsp)           ; beautiful is better than ugly
 ;;qt                ; the 'cutest' gui framework ever
 ;;racket            ; a DSL for DSLs
 ;;raku              ; the artist formerly known as perl6
@@ -274,20 +273,14 @@ A literate packages.el. This file is used to declare external packages.
 ;; -*- no-byte-compile: t; -*-
 #+end_src
 
-Zotero integration with org-mode
-#+begin_src emacs-lisp
-(package! zotxt)
-#+end_src
-
 Fancy org-mode priorities
 #+begin_src emacs-lisp
 (package! org-fancy-priorities)
 #+end_src
 
-Org-roam-bibtex and server for better org-roam integration
+Org-roam-bibtex for better org-roam integration
 #+begin_src emacs-lisp
 (package! org-roam-bibtex :pin "80a86980801ff233d7c12ae9efef589ffa53df67")
-(package! org-roam-server)
 #+end_src
 
 Org ref for easy reference management
@@ -310,6 +303,16 @@ Org tree slide
 (package! org-tree-slide)
 #+end_src
 
+Unpin vterm
+#+begin_src emacs-lisp
+(unpin! vterm)
+#+end_src
+
+Polymode for markdown syntax highlighting
+#+begin_src emacs-lisp
+(package! poly-markdown :pin "1536cf0c32f71d5cd05c90f7905905e38006e95d")
+#+end_src
+
 * General
 Lexical binding to make things run slightly faster.
 #+begin_src emacs-lisp
@@ -327,11 +330,12 @@ Lexical binding to make things run slightly faster.
 
 ** Appearance
 #+begin_src emacs-lisp
-(setq
- doom-font (font-spec :family "Source Code Pro for Powerline" :size 18 :weight 'Regular)
- doom-theme 'doom-gruvbox-mod
- display-line-numbers-type 'relative
- display-time-default-load-average nil)
+(setq doom-font (font-spec :family "Source Code Pro for Powerline" :size 21 :weight 'Regular)
+      doom-theme 'doom-gruvbox-mod
+      display-line-numbers-type 'relative
+      display-time-default-load-average nil)
+
+(doom/reload-theme)
 #+end_src
 
 *** Battery and time
@@ -358,7 +362,7 @@ Hide the dashboard menu
 (remove-hook '+doom-dashboard-functions #'doom-dashboard-widget-shortmenu)
 #+end_src
 
-**** Fancy splash image
+**** Splash image
 Fancy splash image yanked from [[https://github.com/tecosaur/emacs-config/blob/master/config.org#splash-screen][here]]
 #+begin_src emacs-lisp
 (defvar fancy-splash-image-template
@@ -457,10 +461,8 @@ Fancy splash image yanked from [[https://github.com/tecosaur/emacs-config/blob/m
 #+end_src
 
 ** Treemacs
-Use default treemacs theme instead of the doom theme treemacs extension
 #+begin_src emacs-lisp
-(when (featurep! :ui treemacs)
-  (remove-hook 'doom-load-theme-hook #'doom-themes-treemacs-config))
+(setq doom-themes-treemacs-theme "doom-colors")
 #+end_src
 
 ** Dired
@@ -573,20 +575,16 @@ Key bindings to glance doc
  :map lsp-ui-doc-mode-map
  :desc "+lsp/hover" "gh" #'lsp-ui-doc-glance)
 #+end_src
+
 ** GDB
 #+begin_src emacs-lisp
-(after! gbd
-  (setq gdb-show-main t
-        gdb-many-windows t))
+(setq gdb-show-main t
+      gdb-many-windows t)
 #+end_src
+
 ** Python
 #+begin_src emacs-lisp
 (setq lsp-python-ms-extra-paths ["./src/python" "./configs"])
-
-(after! python
-  (setq conda-env-home-directory (expand-file-name "~/.conda"))
-  (custom-set-variables
-   '(conda-anaconda-home (getenv "CONDA_HOME"))))
 #+end_src
 
 ** C/C++
@@ -603,8 +601,8 @@ Key bindings to glance doc
 ** Directories and files
 #+begin_src emacs-lisp
 (setq org-directory (concat (getenv "HOME") "/Org")
-      org_notes-directory (concat org-directory "/research/notes")
-      zotero_bib-file (concat org-directory "/research/references.bib"))
+      org_notes-directory (concat org-directory "/notes")
+      zotero_bib-file (concat org-directory "/references.bib"))
 #+end_src
 
 Capture files
@@ -704,7 +702,8 @@ Capture templates using doct
 ** Deft
 #+begin_src emacs-lisp
 (after! deft
-  (setq deft-directory org_notes-directory))
+  (setq deft-directory org-directory
+        deft-recursive t))
 #+end_src
 
 ** Org ref
@@ -767,64 +766,6 @@ A helm keybinding to open helm-bibtex and open PDFs
                     (helm-select-nth-action 8)))) ;; Action 8 corrosponds to edit notes in `org-ref-bibtex-completion-actions'
 #+end_src
 
-** Zotero integration
-Configure zotxt-emacs for better zotero integration
-#+begin_src emacs-lisp
-(use-package! zotxt
-  :after org
-  :hook (org-mode . org-zotxt-mode)
-  :config
-  (defun org-zotxt-insert-current-selection ()
-    "Insert reference link for the currently selected item in Zotero"
-    (interactive)
-    (org-zotxt-insert-reference-link 4))
-
-  (map! :map org-mode-map
-        :localleader
-        (:prefix ("z" . "zotero")
-         :desc "Link to selected item" "i" #'org-zotxt-insert-current-selection
-         :desc "Link to an item"       "I" #'org-zotxt-insert-reference-link
-         :desc "Open zotxt link"       "a" #'org-zotxt-open-attachment )))
-
-(after! (org zotxt)
-  (org-link-set-parameters "zotero"
-                           :face `(:foreground ,(doom-color 'red)
-                                   :weight bold
-                                   :slant italic)))
-#+end_src
-
-A convenience function to open org-ref citelinks using zotxt
-#+begin_src emacs-lisp
-(after! (org zotxt)
-  (require 'deferred)
-
-  (defun org-zotxt-open-citelink-attachment (&optional arg)
-    "Open attachment of Zotero items with the org-ref citelink"
-
-    (interactive "P")
-    (let ((citekey (org-ref-get-bibtex-key-under-cursor)))
-      (deferred:$
-        (zotxt--request-deferred
-         (format "%s/items" zotxt-url-base)
-         :params `(("citekey" . ,citekey) ("format" . "paths"))
-         :parser 'json-read)
-        (deferred:nextc it
-          (lambda (response)
-            (let ((paths (cdr (assq 'paths (elt (request-response-data response) 0)))))
-              (org-open-file (org-zotxt-choose-path paths)))))
-        (deferred:error it #'zotxt--deferred-handle-error)
-        (if zotxt--debug-sync (deferred:sync! it))))))
-
-#+end_src
-
-Add zotxt citelink function as org-ref helm user candidate
-#+begin_src emacs-lisp
-(setq org-ref-helm-user-candidates '())
-(add-to-list
- 'org-ref-helm-user-candidates
- '("Open pdf with Zotero" . org-zotxt-open-citelink-attachment) t)
-#+end_src
-
 ** Org roam
 Setup org roam
 #+begin_src emacs-lisp
@@ -852,11 +793,6 @@ Prevent org roam from downcasing slug titles for better integration with org-roa
              (-reduce-from #'cl-replace (strip-nonspacing-marks title) pairs))))
 
   (setq org-roam-title-to-slug-function #'org-roam--title-to-slug-without-downcasing))
-#+end_src
-
-Start org-roam-server on startup
-#+begin_src emacs-lisp
-(setq org-roam-server-port 9666)
 #+end_src
 
 Setup org-roam-bibtex
@@ -940,8 +876,10 @@ Browse shell history in vterm
 #+begin_src emacs-lisp
 (map!
  :map vterm-mode-map
- :n "-" #'vterm-send-up
- :n "=" #'vterm-send-down)
+ :n   "-" #'vterm-send-up
+ :n   "=" #'vterm-send-down
+ :niv "C-c C-k" #'vterm-previous-prompt
+ :niv "C-c C-j" #'vterm-next-prompt)
 #+end_src
 
 ** zsh environment quick edit
