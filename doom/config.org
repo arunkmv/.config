@@ -119,7 +119,7 @@ word-wrap         ; soft wrapping with language-aware indent
 *** Emacs
 #+name: doom-emacs
 #+begin_src emacs-lisp
-dired             ; making dired pretty [functional]
+(dired +icons)            ; making dired pretty [functional]
 electric          ; smarter, keyword-based electric-indent
 ;;ibuffer         ; interactive buffer management
 (undo +tree)              ; persistent, smarter undo for your inevitable mistakes
@@ -313,6 +313,26 @@ Polymode for markdown syntax highlighting
 (package! poly-markdown :pin "1536cf0c32f71d5cd05c90f7905905e38006e95d")
 #+end_src
 
+Pin evil-collection to resolve [[https://github.com/hlissner/doom-emacs/issues/5454][this]] issue
+#+begin_src emacs-lisp
+(package! evil-collection :pin "47bc8571a6105d7cf61b7fd0fce4a87f8c2c4725")
+#+end_src
+
+Nov.el for reading EPUBs
+#+begin_src emacs-lisp
+(package! nov)
+#+end_src
+
+Dired open for easily opening files
+#+begin_src emacs-lisp
+(package! dired-open)
+#+end_src
+
+Firrtl mode
+#+begin_src emacs-lisp
+(package! firrtl-mode)
+#+end_src
+
 * General
 Lexical binding to make things run slightly faster.
 #+begin_src emacs-lisp
@@ -466,11 +486,22 @@ Fancy splash image yanked from [[https://github.com/tecosaur/emacs-config/blob/m
 #+end_src
 
 ** Dired
-Change dired's default behaviour of creating new buffers
+Change dired's default behaviour of creating new buffers and use vim like keybindings
 #+begin_src emacs-lisp
-(map!
- :map dired-mode-map
- :n "-" (lambda () (interactive) (find-alternate-file "..")))
+(after! dired
+  (map! :map dired-mode-map
+        :n "h" (lambda () (interactive) (find-alternate-file ".."))
+        :n "l" #'dired-find-alternate-file
+        :n "K" #'dired-do-kill-lines)
+  (setq dired-listing-switches "-agho --group-directories-first"))
+#+end_src
+
+Configure dired-open for commonly opened file types
+#+begin_src emacs-lisp
+(use-package! dired-open
+  :commands (dired)
+  :config
+  (setq dired-open-extensions '(("vcd" . "gtkwave"))))
 #+end_src
 
 ** Projectile
@@ -481,10 +512,9 @@ Keep projectile from adding new projects everytime a directory is opened
 
 ** Modeline
 #+begin_src emacs-lisp
-(setq
- doom-modeline-buffer-encoding nil
- doom-modeline-major-mode-icon t
- doom-modeline-modal-icon nil)
+(setq doom-modeline-buffer-encoding nil
+      doom-modeline-major-mode-icon t
+      doom-modeline-modal-icon nil)
 #+end_src
 
 Change faces of evil indicators
@@ -528,8 +558,8 @@ Key bindings to scroll to horizontal extremes when zoomed in
 Key bindings to move forward and back in pdf history
 #+begin_src emacs-lisp
 (map! :map pdf-view-mode-map
-       :desc "Forward" :n "ghf" #'pdf-history-forward
-       :desc "Backward" :n "ghb" #'pdf-history-backward)
+      :desc "Forward" :n "ghf" #'pdf-history-forward
+      :desc "Backward" :n "ghb" #'pdf-history-backward)
 #+end_src
 
 ** Evil mode
@@ -558,6 +588,46 @@ Evil vim state indicators
     (setq beacon-color (doom-color 'orange))))
 #+end_src
 
+** Nov
+Configure nov-mode. Open epubs with nov, set font and column width.
+#+begin_src emacs-lisp
+(use-package! nov
+  :config
+  (add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode))
+
+  (defun ak/nov-font-setup ()
+    (face-remap-add-relative 'variable-pitch :family "Bookerley"
+                             :height 1.0))
+
+  (add-hook 'nov-mode-hook 'ak/nov-font-setup)
+  (setq nov-text-width 80))
+#+end_src
+
+** Dictionary lookup
+Functions to lookup random words in the dictionary definitions and synonyms
+#+begin_src emacs-lisp
+(defun ak/dictionary-definition-prompt (identifier &optional arg)
+  "Look up the definition of any word."
+  (interactive
+   (list (read-string "Look up in dictionary: ")
+         current-prefix-arg))
+  (message "Looking up dictionary definition for %S" identifier)
+  (cond ((and IS-MAC (require 'osx-dictionary nil t))
+         (osx-dictionary--view-result identifier))
+        ((and +lookup-dictionary-prefer-offline
+              (require 'wordnut nil t))
+         (unless (executable-find wordnut-cmd)
+           (user-error "Couldn't find %S installed on your system"
+                       wordnut-cmd))
+         (wordnut-search identifier))
+        ((require 'define-word nil t)
+         (define-word identifier nil arg))
+        ((user-error "No dictionary backend is available"))))
+
+(map! :leader
+      :desc "Dictionary (w/ prompt)" :n "sx" #'ak/dictionary-definition-prompt)
+#+end_src
+
 * Prog mode
 ** LSP mode
 Disable doc on cursor hover
@@ -569,11 +639,16 @@ Disable doc on cursor hover
                 (remove-hook 'post-command-hook #'lsp-ui-doc--make-request t))))
 #+end_src
 
+Key binding to format buffer
+#+begin_src emacs-lisp
+(map! :leader
+      :desc "Format buffer" :n "cf" #'lsp-format-buffer)
+#+end_src
+
 Key bindings to glance doc
 #+begin_src emacs-lisp
-(map!
- :map lsp-ui-doc-mode-map
- :desc "+lsp/hover" "gh" #'lsp-ui-doc-glance)
+(map! :map lsp-ui-doc-mode-map
+      :desc "+lsp/hover" :n "gh" #'lsp-ui-doc-glance)
 #+end_src
 
 ** GDB
@@ -591,6 +666,32 @@ Key bindings to glance doc
 #+begin_src emacs-lisp
 #+end_src
 
+** Scala
+Always open sbt buffer as popup and add keybinding
+#+begin_src emacs-lisp
+(after! sbt-mode
+  (set-popup-rule! "^\\*sbt" :vslot -5 :size 0.35 :select t :modeline nil :quit nil :ttl nil))
+#+end_src
+
+Function to toggle the sbt buffer popup
+#+begin_src emacs-lisp
+(defun ak/sbt-toggle()
+  "Toggle sbt buffer popup window or create a new one if none exists"
+  (interactive)
+  (let* ((project-root (or (sbt:find-root)
+                           (error "Could not find project root, type `C-h f sbt:find-root` for help.")))
+         (buffer-name (sbt:buffer-name))
+         (window (get-buffer-window buffer-name)))
+    (if-let (win (get-buffer-window buffer-name))
+        (delete-window win)
+      (sbt-start))))
+
+(after! scala-mode
+  (map! :map scala-mode-map
+        :leader
+        :desc "Run sbt" :n "os" #'ak/sbt-toggle))
+#+end_src
+
 * Org mode
 #+begin_src emacs-lisp
 (after! org
@@ -602,7 +703,7 @@ Key bindings to glance doc
 #+begin_src emacs-lisp
 (setq org-directory (concat (getenv "HOME") "/Org")
       org_notes-directory (concat org-directory "/notes")
-      zotero_bib-file (concat org-directory "/references.bib"))
+      zotero_bib-file (concat (getenv "HOME") "/Documents/Zotero/references.bib"))
 #+end_src
 
 Capture files
@@ -776,7 +877,7 @@ Setup org roam
 
 Prevent org roam from downcasing slug titles for better integration with org-roam-bibtex and org-noter (pdf filename = note filename = citekey)
 #+begin_src emacs-lisp
-  (defun org-roam--title-to-slug-without-downcasing (title)
+  (defun ak/org-roam--title-to-slug-without-downcasing (title)
     "Convert TITLE to a filename-suitable slug (without downcasing)."
     (cl-flet* ((nonspacing-mark-p (char)
                                   (memq char org-roam-slug-trim-chars))
@@ -792,7 +893,7 @@ Prevent org roam from downcasing slug titles for better integration with org-roa
                       ("_$" . ""))))  ;; remove ending underscore
              (-reduce-from #'cl-replace (strip-nonspacing-marks title) pairs))))
 
-  (setq org-roam-title-to-slug-function #'org-roam--title-to-slug-without-downcasing))
+  (setq org-roam-title-to-slug-function #'ak/org-roam--title-to-slug-without-downcasing))
 #+end_src
 
 Setup org-roam-bibtex
@@ -826,21 +927,15 @@ Defaults for org noter
         org-noter-always-create-frame nil
         org-noter-notes-search-path (list org_notes-directory)
         org-noter-separate-notes-from-heading nil)
-  (map!
-   :map org-noter-doc-mode-map
-   :leader
-   :desc "Insert note"
-   "m i" #'org-noter-insert-note
-   :desc "Insert precise note"
-   "m p" #'org-noter-insert-precise-note
-   :desc "Go to previous note"
-   "m k" #'org-noter-sync-prev-note
-   :desc "Go to next note"
-   "m j" #'org-noter-sync-next-note
-   :desc "Create skeleton"
-   "m s" #'org-noter-create-skeleton
-   :desc "Kill session"
-   "m q" #'org-noter-kill-session))
+
+  (map! :map org-noter-doc-mode-map
+        :leader
+        :desc "Insert note" "m i" #'org-noter-insert-note
+        :desc "Insert precise note" "m p" #'org-noter-insert-precise-note
+        :desc "Go to previous note" "m k" #'org-noter-sync-prev-note
+        :desc "Go to next note" "m j" #'org-noter-sync-next-note
+        :desc "Create skeleton" "m s" #'org-noter-create-skeleton
+        :desc "Kill session" "m q" #'org-noter-kill-session))
 #+end_src
 
 ** LaTeX and Beamer export
@@ -874,12 +969,11 @@ Set default vterm shell
 
 Browse shell history in vterm
 #+begin_src emacs-lisp
-(map!
- :map vterm-mode-map
- :n   "-" #'vterm-send-up
- :n   "=" #'vterm-send-down
- :niv "C-c C-k" #'vterm-previous-prompt
- :niv "C-c C-j" #'vterm-next-prompt)
+(map! :map vterm-mode-map
+      :n   "-" #'vterm-send-up
+      :n   "=" #'vterm-send-down
+      :niv "C-c C-k" #'vterm-previous-prompt
+      :niv "C-c C-j" #'vterm-next-prompt)
 #+end_src
 
 ** zsh environment quick edit

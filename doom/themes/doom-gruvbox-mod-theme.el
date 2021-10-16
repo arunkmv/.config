@@ -108,7 +108,9 @@ background contrast. All other values default to \"medium\"."
    (org-quote `(,(doom-lighten (car bg) 0.05) "#1f1f1f")))
 
   ;;;; Base theme face overrides
-  ((button :foreground cyan :underline t :weight 'bold)
+  (((font-lock-comment-face &override) :slant 'italic)
+   ((font-lock-type-face &override) :slant 'italic)
+   (button :foreground cyan :underline t :weight 'bold)
    (cursor :background "white")
    (hl-line :background base3)
    ((line-number &override) :foreground base5)
