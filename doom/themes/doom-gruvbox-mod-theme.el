@@ -181,12 +181,13 @@ background contrast. All other values default to \"medium\"."
    ;;;; highlight-symbol
    (highlight-symbol-face :background (doom-lighten base3 0.03) :distant-foreground fg-alt)
    ;;;; ivy
-   (ivy-current-match :background bg-alt2)
+   (ivy-current-match :background bg-alt2 :weight 'bold)
    (ivy-subdir :background nil :foreground cyan)
    (ivy-action :background nil :foreground cyan)
    (ivy-grep-line-number :background nil :foreground cyan)
-   (ivy-minibuffer-match-face-1 :background nil :foreground yellow)
-   (ivy-minibuffer-match-face-2 :background nil :foreground yellow)
+   (ivy-minibuffer-match-face-1 :background nil :foreground violet)
+   (ivy-minibuffer-match-face-2 :background nil :foreground violet)
+   (ivy-minibuffer-match-face-3 :background nil :foreground blue)
    (ivy-minibuffer-match-highlight :foreground cyan)
    (counsel-key-binding :foreground cyan)
    ;;;; ivy-posframe
@@ -245,9 +246,11 @@ background contrast. All other values default to \"medium\"."
    (org-verbatim :foreground yellow)
    ;;;; rainbow-delimiters
    (rainbow-delimiters-depth-1-face :foreground orange)
-   (rainbow-delimiters-depth-2-face :foreground red)
+   (rainbow-delimiters-depth-2-face :foreground dark-green)
    (rainbow-delimiters-depth-3-face :foreground magenta)
-   (rainbow-delimiters-depth-4-face :foreground blue)
+   (rainbow-delimiters-depth-4-face :foreground dark-blue)
+   (rainbow-delimiters-depth-5-face :foreground dark-yellow)
+   (rainbow-delimiters-depth-6-face :foreground violet)
    ;;;; show-paren <built-in>
    ((show-paren-match &override) :foreground nil :background base5 :bold t)
    ((show-paren-mismatch &override) :foreground nil :background "red")

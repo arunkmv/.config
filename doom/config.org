@@ -105,7 +105,7 @@ workspaces        ; tab emulation, persistence & separate workspaces
 (evil +everywhere); come to the dark side, we have cookies
 file-templates    ; auto-snippets for empty files
 fold              ; (nigh) universal code folding
-;;(format +onsave)  ; automated prettiness
+format  ; automated prettiness
 ;;god               ; run Emacs commands without modifier keys
 ;;lispy             ; vim for lisp, for people who don't like vim
 multiple-cursors  ; editing in many places at once
@@ -268,78 +268,12 @@ literate
 :PROPERTIES:
 :header-args:emacs-lisp: :tangle "packages.el" :comments no
 :END:
-A literate packages.el. This file is used to declare external packages.
+A literate packages.el. This file is used to declare external packages. Declaritions done are beside packages configurations, [[*Beacon][like so]].
 #+begin_src emacs-lisp
 ;; -*- no-byte-compile: t; -*-
 #+end_src
 
-Fancy org-mode priorities
-#+begin_src emacs-lisp
-(package! org-fancy-priorities)
-#+end_src
-
-Org-roam-bibtex for better org-roam integration
-#+begin_src emacs-lisp
-(package! org-roam-bibtex :pin "80a86980801ff233d7c12ae9efef589ffa53df67")
-#+end_src
-
-Org ref for easy reference management
-#+begin_src emacs-lisp
-(package! org-ref)
-#+end_src
-
-Doct for declarative org capture templates
-#+begin_src emacs-lisp
-(package! doct)
-#+end_src
-
-Beacon to never lose my cursor again
-#+begin_src emacs-lisp
-(package! beacon)
-#+end_src
-
-Org tree slide
-#+begin_src emacs-lisp
-(package! org-tree-slide)
-#+end_src
-
-Unpin vterm
-#+begin_src emacs-lisp
-(unpin! vterm)
-#+end_src
-
-Polymode for markdown syntax highlighting
-#+begin_src emacs-lisp
-(package! poly-markdown :pin "1536cf0c32f71d5cd05c90f7905905e38006e95d")
-#+end_src
-
-Pin evil-collection to resolve [[https://github.com/hlissner/doom-emacs/issues/5454][this]] issue
-#+begin_src emacs-lisp
-(package! evil-collection :pin "47bc8571a6105d7cf61b7fd0fce4a87f8c2c4725")
-#+end_src
-
-Nov.el for reading EPUBs
-#+begin_src emacs-lisp
-(package! nov)
-#+end_src
-
-Dired open for easily opening files
-#+begin_src emacs-lisp
-(package! dired-open)
-#+end_src
-
-Firrtl mode
-#+begin_src emacs-lisp
-(package! firrtl-mode)
-#+end_src
-
 * General
-Lexical binding to make things run slightly faster.
-#+begin_src emacs-lisp
-;;; config.el -*- lexical-binding: t; -*-
-#+end_src
-
-** Defaults
 #+begin_src emacs-lisp
 (setq default-directory "~"
       locale-coding-system 'utf-8-unix
@@ -348,6 +282,53 @@ Lexical binding to make things run slightly faster.
 (custom-set-faces! `(link :foreground ,(doom-color 'violet) :weight bold :underline t ))
 #+end_src
 
+** Widows and buffers
+Keybindings for convenient buffer and window manipulation
+#+begin_src emacs-lisp
+(map! :leader
+      :desc "Switch workspace buffer other window" :n "bw" #'+ivy/switch-workspace-buffer-other-window
+      :desc "Switch buffer other window" :n "bW" #'+ivy/switch-buffer-other-window
+      :desc "Kill buffer and window" :n "bD" #'kill-buffer-and-window)
+#+end_src
+
+Split windows vertically by default
+#+begin_src emacs-lisp
+(setq split-height-threshold nil)
+(setq split-width-threshold 0)
+#+end_src
+
+** Popups
+Don't use popup system for info-mode.
+#+begin_src emacs-lisp
+(set-popup-rule! "^\\*info\\*$" :ignore t)
+#+end_src
+
+** Dictionary lookup
+Functions to lookup random words in the dictionary definitions and synonyms
+#+begin_src emacs-lisp
+(defun ak/dictionary-definition-prompt (identifier &optional arg)
+  "Look up the definition of any word."
+  (interactive
+   (list (read-string "Look up in dictionary: ")
+         current-prefix-arg))
+  (message "Looking up dictionary definition for %S" identifier)
+  (cond ((and IS-MAC (require 'osx-dictionary nil t))
+         (osx-dictionary--view-result identifier))
+        ((and +lookup-dictionary-prefer-offline
+              (require 'wordnut nil t))
+         (unless (executable-find wordnut-cmd)
+           (user-error "Couldn't find %S installed on your system"
+                       wordnut-cmd))
+         (wordnut-search identifier))
+        ((require 'define-word nil t)
+         (define-word identifier nil arg))
+        ((user-error "No dictionary backend is available"))))
+
+(map! :leader
+      :desc "Dictionary (w/ prompt)" :n "sx" #'ak/dictionary-definition-prompt)
+#+end_src
+
+* UI
 ** Appearance
 #+begin_src emacs-lisp
 (setq doom-font (font-spec :family "Source Code Pro for Powerline" :size 21 :weight 'Regular)
@@ -356,13 +337,6 @@ Lexical binding to make things run slightly faster.
       display-time-default-load-average nil)
 
 (doom/reload-theme)
-#+end_src
-
-*** Battery and time
-Display battery and time in modeline
-#+begin_src emacs-lisp
-(display-battery-mode 1)
-(display-time-mode 1)
 #+end_src
 
 *** Full screen
@@ -480,6 +454,57 @@ Fancy splash image yanked from [[https://github.com/tecosaur/emacs-config/blob/m
 (add-hook 'doom-load-theme-hook #'set-appropriate-splash)
 #+end_src
 
+** Modeline
+#+begin_src emacs-lisp
+(setq doom-modeline-buffer-encoding nil
+      doom-modeline-major-mode-icon t
+      doom-modeline-modal-icon nil)
+#+end_src
+
+Key binding to toggle modeline
+#+begin_src emacs-lisp
+(map! :leader
+      :desc "Modeline" :n "tm"
+      #'doom-modeline-mode)
+#+end_src
+
+*** Evil state indicators
+Change faces of evil indicators
+#+begin_src emacs-lisp
+(custom-set-faces!
+  `(doom-modeline-evil-emacs-state :background ,(doom-color 'violet) :foreground ,(doom-color 'base0))
+  `(doom-modeline-evil-normal-state :background ,(doom-color 'green) :foreground ,(doom-color 'base0))
+  `(doom-modeline-evil-insert-state :background ,(doom-color 'dark-blue) :foreground ,(doom-color 'fg))
+  `(doom-modeline-evil-visual-state :background ,(doom-color 'orange) :foreground ,(doom-color 'base0))
+  `(doom-modeline-evil-motion-state :background ,(doom-color 'red) :foreground ,(doom-color 'fg))
+  `(doom-modeline-evil-operator-state :background ,(doom-color 'yellow) :foreground ,(doom-color 'base0))
+  `(doom-modeline-evil-replace-state :background ,(doom-color 'magenta) :foreground ,(doom-color 'fg)))
+#+end_src
+
+*** Battery and time
+Display battery and time in modeline
+#+begin_src emacs-lisp
+(display-battery-mode 1)
+(display-time-mode 1)
+#+end_src
+
+*** TODO Change `doom-modeline-buffer-file-name' based on window size
+
+** Beacon
+Beacon to never lose my cursor again
+#+begin_src emacs-lisp :tangle "packages.el" :comments no
+(package! beacon)
+#+end_src
+
+#+begin_src emacs-lisp
+(use-package! beacon
+  :hook (doom-after-init-modules . beacon-mode)
+  :config
+  (after! doom-themes
+    (setq beacon-color (doom-color 'orange))))
+#+end_src
+
+* Tools
 ** Treemacs
 #+begin_src emacs-lisp
 (setq doom-themes-treemacs-theme "doom-colors")
@@ -490,10 +515,17 @@ Change dired's default behaviour of creating new buffers and use vim like keybin
 #+begin_src emacs-lisp
 (after! dired
   (map! :map dired-mode-map
-        :n "h" (lambda () (interactive) (find-alternate-file ".."))
-        :n "l" #'dired-find-alternate-file
-        :n "K" #'dired-do-kill-lines)
+        :desc "Go to parent directory" :n "h" (lambda () (interactive) (find-alternate-file ".."))
+        :desc "Go to current entry" :n "l" #'dired-find-alternate-file
+        :desc "Kill marked lines" :n "K" #'dired-do-kill-lines
+        :desc "Goto home directory" :n "gh" (lambda () (interactive) (find-alternate-file (getenv "HOME"))))
   (setq dired-listing-switches "-agho --group-directories-first"))
+#+end_src
+
+*** Dired open
+Dired open for easily opening files
+#+begin_src emacs-lisp :tangle "packages.el" :comments no
+(package! dired-open)
 #+end_src
 
 Configure dired-open for commonly opened file types
@@ -510,34 +542,48 @@ Keep projectile from adding new projects everytime a directory is opened
 (setq projectile-track-known-projects-automatically nil)
 #+end_src
 
-** Modeline
+** mu4e
+Add mu4e to load path
 #+begin_src emacs-lisp
-(setq doom-modeline-buffer-encoding nil
-      doom-modeline-major-mode-icon t
-      doom-modeline-modal-icon nil)
+;; (add-to-list 'load-path "/usr/share/emacs/site-lisp/mu4e")
 #+end_src
 
-Change faces of evil indicators
+Configure mu4e
 #+begin_src emacs-lisp
-(custom-set-faces!
-  `(doom-modeline-evil-emacs-state :background ,(doom-color 'violet) :foreground ,(doom-color 'base0))
-  `(doom-modeline-evil-normal-state :background ,(doom-color 'green) :foreground ,(doom-color 'base0))
-  `(doom-modeline-evil-insert-state :background ,(doom-color 'dark-blue) :foreground ,(doom-color 'fg))
-  `(doom-modeline-evil-visual-state :background ,(doom-color 'orange) :foreground ,(doom-color 'base0))
-  `(doom-modeline-evil-motion-state :background ,(doom-color 'red) :foreground ,(doom-color 'fg))
-  `(doom-modeline-evil-operator-state :background ,(doom-color 'yellow) :foreground ,(doom-color 'base0))
-  `(doom-modeline-evil-replace-state :background ,(doom-color 'magenta) :foreground ,(doom-color 'fg)))
+;; (set-email-account! "gmail"
+;;   '((mu4e-sent-folder       . "/gmail/Sent Mail")
+;;     (mu4e-drafts-folder     . "/gmail/Drafts")
+;;     (mu4e-trash-folder      . "/gmail/Trash")
+;;     (mu4e-refile-folder     . "/gmail/All Mail")
+;;     (smtpmail-smtp-user     . "arunkumarmv1997@gmail.com")
+;;     (user-mail-address      . "arunkumarmv1997@gmail.com")    ;; only needed for mu < 1.4
+;;     (mu4e-compose-signature . "---\nArunkumar M V"))
+;;   t)
 #+end_src
 
-Key binding to toggle modeline
-#+begin_src emacs-lisp
-(map! :leader
-      :desc "Modeline" :n "tm"
-      #'doom-modeline-mode)
+** Evil mode
+Pin evil-collection to resolve [[https://github.com/hlissner/doom-emacs/issues/5454][this]] issue
+#+begin_src emacs-lisp :tangle "packages.el" :comments no
+(package! evil-collection :pin "47bc8571a6105d7cf61b7fd0fce4a87f8c2c4725")
 #+end_src
 
-*** TODO Change `doom-modeline-buffer-file-name' based on window size
-** PDF tools
+Evil vim state indicators
+#+begin_src emacs-lisp
+(after! evil
+  (setq-default
+   evil-emacs-state-tag          " E "
+   evil-normal-state-tag         " N "
+   evil-insert-state-tag         " I "
+   evil-visual-char-tag          " V "
+   evil-visual-line-tag          " VL "
+   evil-visual-screen-line-tag   " VSL "
+   evil-visual-block-tag         " VB "
+   evil-motion-state-tag         " M "
+   evil-operator-state-tag       " O "
+   evil-replace-state-tag        " R "))
+#+end_src
+** Document utilities
+*** PDF tools
 Open in midnight dark mode
 #+begin_src emacs-lisp
 (add-hook 'pdf-tools-enabled-hook 'pdf-view-midnight-minor-mode)
@@ -562,33 +608,12 @@ Key bindings to move forward and back in pdf history
       :desc "Backward" :n "ghb" #'pdf-history-backward)
 #+end_src
 
-** Evil mode
-Evil vim state indicators
-#+begin_src emacs-lisp
-(after! evil
-  (setq-default
-   evil-emacs-state-tag          " E "
-   evil-normal-state-tag         " N "
-   evil-insert-state-tag         " I "
-   evil-visual-char-tag          " V "
-   evil-visual-line-tag          " VL "
-   evil-visual-screen-line-tag   " VSL "
-   evil-visual-block-tag         " VB "
-   evil-motion-state-tag         " M "
-   evil-operator-state-tag       " O "
-   evil-replace-state-tag        " R "))
+*** Nov
+Nov.el for reading EPUBs
+#+begin_src emacs-lisp :tangle "packages.el" :comments no
+(package! nov)
 #+end_src
 
-** Beacon
-#+begin_src emacs-lisp
-(use-package! beacon
-  :hook (doom-after-init-modules . beacon-mode)
-  :config
-  (after! doom-themes
-    (setq beacon-color (doom-color 'orange))))
-#+end_src
-
-** Nov
 Configure nov-mode. Open epubs with nov, set font and column width.
 #+begin_src emacs-lisp
 (use-package! nov
@@ -602,30 +627,44 @@ Configure nov-mode. Open epubs with nov, set font and column width.
   (add-hook 'nov-mode-hook 'ak/nov-font-setup)
   (setq nov-text-width 80))
 #+end_src
+*** Markdown
+**** Polymode markdown
+For markdown syntax highlighting
+#+begin_src emacs-lisp :tangle "packages.el" :comments no
+(package! poly-markdown :pin "1536cf0c32f71d5cd05c90f7905905e38006e95d")
+#+end_src
 
-** Dictionary lookup
-Functions to lookup random words in the dictionary definitions and synonyms
+* Completion frameworks
+** Ivy
+*** Ivy Bibtex
+Ivy-bibtex and bibtex completion for easily interacting with Zotero library. Also used by org-ref and org-roam-bibtex
+#+begin_src emacs-lisp :tangle "packages.el" :comments no
+(package! ivy-bibtex)
+#+end_src
+
+Set defaults
 #+begin_src emacs-lisp
-(defun ak/dictionary-definition-prompt (identifier &optional arg)
-  "Look up the definition of any word."
-  (interactive
-   (list (read-string "Look up in dictionary: ")
-         current-prefix-arg))
-  (message "Looking up dictionary definition for %S" identifier)
-  (cond ((and IS-MAC (require 'osx-dictionary nil t))
-         (osx-dictionary--view-result identifier))
-        ((and +lookup-dictionary-prefer-offline
-              (require 'wordnut nil t))
-         (unless (executable-find wordnut-cmd)
-           (user-error "Couldn't find %S installed on your system"
-                       wordnut-cmd))
-         (wordnut-search identifier))
-        ((require 'define-word nil t)
-         (define-word identifier nil arg))
-        ((user-error "No dictionary backend is available"))))
+(after! ivy-bibtex
+  (setq bibtex-completion-notes-path ak-org-notes-directory
+        bibtex-completion-bibliography ak-zotero-bib-file
+        bibtex-completion-pdf-field "file"
+        bibtex-completion-edit-notes-function (lambda (keys)
+                                                (orb-edit-notes (car keys)))))
+#+end_src
 
-(map! :leader
-      :desc "Dictionary (w/ prompt)" :n "sx" #'ak/dictionary-definition-prompt)
+Keybinding to open ivy-bibtex
+#+begin_src emacs-lisp
+(after! ivy-bibtex
+  (map! :leader
+        :desc "Ivy-bibtex" :n "ob"
+        #'ivy-bibtex))
+#+end_src
+
+** Company
+Increase minimum prefix length
+#+begin_src emacs-lisp
+(after! company
+  (setq company-minimum-prefix-length 3))
 #+end_src
 
 * Prog mode
@@ -658,8 +697,14 @@ Key bindings to glance doc
 #+end_src
 
 ** Python
+Configure mspyls
 #+begin_src emacs-lisp
 (setq lsp-python-ms-extra-paths ["./src/python" "./configs"])
+#+end_src
+
+Use format-all for python to format with Black
+#+begin_src emacs-lisp
+(add-hook 'python-mode-hook #'format-all-mode)
 #+end_src
 
 ** C/C++
@@ -692,6 +737,18 @@ Function to toggle the sbt buffer popup
         :desc "Run sbt" :n "os" #'ak/sbt-toggle))
 #+end_src
 
+Add hook to format buffer before saving scala files
+#+begin_src emacs-lisp
+(add-hook 'scala-mode-hook
+  (lambda ()
+    (add-hook 'before-save-hook 'lsp-format-buffer nil 'make-it-local)))
+#+end_src
+** Firrtl mode
+For easily reading FIRRTL files emmited by Chisel
+#+begin_src emacs-lisp :tangle "packages.el" :comments no
+(package! firrtl-mode)
+#+end_src
+
 * Org mode
 #+begin_src emacs-lisp
 (after! org
@@ -699,11 +756,16 @@ Function to toggle the sbt buffer popup
   (add-to-list 'org-file-apps '("\\.pdf\\'" . emacs)))
 #+end_src
 
+Right align org tags
+#+begin_src emacs-lisp
+(setq org-tags-column 60)
+#+end_src
+
 ** Directories and files
 #+begin_src emacs-lisp
 (setq org-directory (concat (getenv "HOME") "/Org")
-      org_notes-directory (concat org-directory "/notes")
-      zotero_bib-file (concat (getenv "HOME") "/Documents/Zotero/references.bib"))
+      ak-org-notes-directory (concat org-directory "/notes")
+      ak-zotero-bib-file (concat (getenv "HOME") "/Documents/Zotero/references.bib"))
 #+end_src
 
 Capture files
@@ -743,6 +805,11 @@ Customize todo keywords
           ("KILLED" . +org-todo-killed))))
 #+end_src
 
+*** Fancy org-mode priorities
+#+begin_src emacs-lisp :tangle "packages.el" :comments no
+(package! org-fancy-priorities)
+#+end_src
+
 Fancy priority icons
 #+begin_src emacs-lisp
 (use-package! org-fancy-priorities
@@ -751,12 +818,12 @@ Fancy priority icons
   :config (setq org-fancy-priorities-list '("■" "■" "■")))
 #+end_src
 
-Right align org tags
-#+begin_src emacs-lisp
-(setq org-tags-column 60)
+** Org capture
+Doct for declarative org capture templates
+#+begin_src emacs-lisp :tangle "packages.el" :comments no
+(package! doct)
 #+end_src
 
-** Org capture
 Capture templates using doct
 #+begin_src emacs-lisp
 (use-package! doct
@@ -808,13 +875,18 @@ Capture templates using doct
 #+end_src
 
 ** Org ref
+Org ref for easy reference management in org files
+#+begin_src emacs-lisp :tangle "packages.el" :comments no
+(package! org-ref)
+#+end_src
+
 Require org-ref and set defaults
 #+begin_src emacs-lisp
 (require 'org-ref) ;For some reason `use-package!' does not work for org-ref, TODO Figure out why
 (setq org-ref-open-pdf-function 'org-ref-open-pdf-at-point
       org-ref-get-pdf-filename-function 'org-ref-get-pdf-filename-helm-bibtex
-      org-ref-notes-directory org_notes-directory
-      org-ref-default-bibliography zotero_bib-file
+      org-ref-notes-directory ak-org-notes-directory
+      org-ref-default-bibliography ak-zotero-bib-file
       org-ref-cite-onclick-function 'org-ref-cite-click-helm
       org-ref-notes-function 'orb-edit-notes)
 #+end_src
@@ -840,38 +912,11 @@ Remap refile keys for more convenient org-ref keymap
        :desc "Open citation PDF"     "o" #'org-ref-open-pdf-at-point))
 #+end_src
 
-** Helm Bibtex
-Set defaults
-#+begin_src emacs-lisp
-(after! helm-bibtex
-  (setq bibtex-completion-notes-path org_notes-directory
-        bibtex-completion-bibliography zotero_bib-file
-        bibtex-completion-pdf-field "file"
-        bibtex-completion-edit-notes-function (lambda (keys)
-                                                (orb-edit-notes (car keys)))))
-#+end_src
-
-A helm keybinding to open helm-bibtex and open PDFs
-#+begin_src emacs-lisp
-(after! helm-bibtex
-  (map! :leader
-        :desc "Helm-bibtex" :n "ob"
-        #'helm-bibtex)
-
-  (map! :map helm-map
-        "C-c C-o" (lambda ()
-                    (interactive)
-                    (helm-select-nth-action 1)) ;; Action 1 corrosponds to open PDF in `org-ref-bibtex-completion-actions'
-        "C-c C-n" (lambda ()
-                    (interactive)
-                    (helm-select-nth-action 8)))) ;; Action 8 corrosponds to edit notes in `org-ref-bibtex-completion-actions'
-#+end_src
-
 ** Org roam
 Setup org roam
 #+begin_src emacs-lisp
 (after! org-roam
-  (setq org-roam-directory org_notes-directory)
+  (setq org-roam-directory ak-org-notes-directory)
   (custom-set-faces! `(org-roam-link :foreground ,(doom-color 'violet) :weight bold :slant italic :underline t))
 #+end_src
 
@@ -894,6 +939,12 @@ Prevent org roam from downcasing slug titles for better integration with org-roa
              (-reduce-from #'cl-replace (strip-nonspacing-marks title) pairs))))
 
   (setq org-roam-title-to-slug-function #'ak/org-roam--title-to-slug-without-downcasing))
+#+end_src
+
+*** Org-roam-bibtex
+For better org-roam integration
+#+begin_src emacs-lisp :tangle "packages.el" :comments no
+(package! org-roam-bibtex :pin "80a86980801ff233d7c12ae9efef589ffa53df67")
 #+end_src
 
 Setup org-roam-bibtex
@@ -925,17 +976,18 @@ Defaults for org noter
         org-noter-doc-split-fraction '(0.2 . 0.8)
         org-noter-hide-other nil
         org-noter-always-create-frame nil
-        org-noter-notes-search-path (list org_notes-directory)
+        org-noter-notes-search-path (list ak-org-notes-directory)
         org-noter-separate-notes-from-heading nil)
 
   (map! :map org-noter-doc-mode-map
         :leader
-        :desc "Insert note" "m i" #'org-noter-insert-note
-        :desc "Insert precise note" "m p" #'org-noter-insert-precise-note
-        :desc "Go to previous note" "m k" #'org-noter-sync-prev-note
-        :desc "Go to next note" "m j" #'org-noter-sync-next-note
-        :desc "Create skeleton" "m s" #'org-noter-create-skeleton
-        :desc "Kill session" "m q" #'org-noter-kill-session))
+        :localleader
+        :desc "Insert note" :n "i" #'org-noter-insert-note
+        :desc "Insert precise note" :n "p" #'org-noter-insert-precise-note
+        :desc "Go to previous note" :n "k" #'org-noter-sync-prev-note
+        :desc "Go to next note" :n "j" #'org-noter-sync-next-note
+        :desc "Create skeleton" :n "s" #'org-noter-create-skeleton
+        :desc "Kill session" :n "q" #'org-noter-kill-session))
 #+end_src
 
 ** LaTeX and Beamer export
@@ -956,11 +1008,16 @@ Setup latex and beamer export
 #+end_src
 
 ** Org-tree-slide
+For presenting org-mode files
+#+begin_src emacs-lisp :tangle "packages.el" :comments no
+(package! org-tree-slide)
+#+end_src
+
 #+begin_src emacs-lisp
 (use-package! org-tree-slide)
 #+end_src
 
-* Term + Shell
+* Terminals and shells
 ** vterm
 Set default vterm shell
 #+begin_src emacs-lisp
@@ -976,6 +1033,8 @@ Browse shell history in vterm
       :niv "C-c C-j" #'vterm-next-prompt)
 #+end_src
 
+*** TODO Vterm Ivy mode
+
 ** zsh environment quick edit
 Key bindings to edit the .zshrc and .env files
 #+begin_src emacs-lisp
@@ -988,4 +1047,10 @@ Key bindings to edit the .zshrc and .env files
       (lambda ()
           (interactive)
           (find-file-other-window (expand-file-name "../zsh/.zshrc" doom-private-dir))))
+#+end_src
+
+** eshell
+Add history expansion to eshell (!n and !cmd)
+#+begin_src emacs-lisp
+(add-hook 'eshell-expand-input-functions 'eshell-expand-history-references)
 #+end_src
