@@ -634,121 +634,6 @@ For markdown syntax highlighting
 (package! poly-markdown :pin "1536cf0c32f71d5cd05c90f7905905e38006e95d")
 #+end_src
 
-* Completion frameworks
-** Ivy
-*** Ivy Bibtex
-Ivy-bibtex and bibtex completion for easily interacting with Zotero library. Also used by org-ref and org-roam-bibtex
-#+begin_src emacs-lisp :tangle "packages.el" :comments no
-(package! ivy-bibtex)
-#+end_src
-
-Set defaults
-#+begin_src emacs-lisp
-(after! ivy-bibtex
-  (setq bibtex-completion-notes-path ak-org-notes-directory
-        bibtex-completion-bibliography ak-zotero-bib-file
-        bibtex-completion-pdf-field "file"
-        bibtex-completion-edit-notes-function (lambda (keys)
-                                                (orb-edit-notes (car keys)))))
-#+end_src
-
-Keybinding to open ivy-bibtex
-#+begin_src emacs-lisp
-(after! ivy-bibtex
-  (map! :leader
-        :desc "Ivy-bibtex" :n "ob"
-        #'ivy-bibtex))
-#+end_src
-
-** Company
-Increase minimum prefix length
-#+begin_src emacs-lisp
-(after! company
-  (setq company-minimum-prefix-length 3))
-#+end_src
-
-* Prog mode
-** LSP mode
-Disable doc on cursor hover
-#+begin_src emacs-lisp
-(setq lsp-log-io nil)
-(add-hook 'lsp-ui-doc-mode-hook
-            (lambda ()
-              (when lsp-ui-doc-mode
-                (remove-hook 'post-command-hook #'lsp-ui-doc--make-request t))))
-#+end_src
-
-Key binding to format buffer
-#+begin_src emacs-lisp
-(map! :leader
-      :desc "Format buffer" :n "cf" #'lsp-format-buffer)
-#+end_src
-
-Key bindings to glance doc
-#+begin_src emacs-lisp
-(map! :map lsp-ui-doc-mode-map
-      :desc "+lsp/hover" :n "gh" #'lsp-ui-doc-glance)
-#+end_src
-
-** GDB
-#+begin_src emacs-lisp
-(setq gdb-show-main t
-      gdb-many-windows t)
-#+end_src
-
-** Python
-Configure mspyls
-#+begin_src emacs-lisp
-(setq lsp-python-ms-extra-paths ["./src/python" "./configs"])
-#+end_src
-
-Use format-all for python to format with Black
-#+begin_src emacs-lisp
-(add-hook 'python-mode-hook #'format-all-mode)
-#+end_src
-
-** C/C++
-#+begin_src emacs-lisp
-#+end_src
-
-** Scala
-Always open sbt buffer as popup and add keybinding
-#+begin_src emacs-lisp
-(after! sbt-mode
-  (set-popup-rule! "^\\*sbt" :vslot -5 :size 0.35 :select t :modeline nil :quit nil :ttl nil))
-#+end_src
-
-Function to toggle the sbt buffer popup
-#+begin_src emacs-lisp
-(defun ak/sbt-toggle()
-  "Toggle sbt buffer popup window or create a new one if none exists"
-  (interactive)
-  (let* ((project-root (or (sbt:find-root)
-                           (error "Could not find project root, type `C-h f sbt:find-root` for help.")))
-         (buffer-name (sbt:buffer-name))
-         (window (get-buffer-window buffer-name)))
-    (if-let (win (get-buffer-window buffer-name))
-        (delete-window win)
-      (sbt-start))))
-
-(after! scala-mode
-  (map! :map scala-mode-map
-        :leader
-        :desc "Run sbt" :n "os" #'ak/sbt-toggle))
-#+end_src
-
-Add hook to format buffer before saving scala files
-#+begin_src emacs-lisp
-(add-hook 'scala-mode-hook
-  (lambda ()
-    (add-hook 'before-save-hook 'lsp-format-buffer nil 'make-it-local)))
-#+end_src
-** Firrtl mode
-For easily reading FIRRTL files emmited by Chisel
-#+begin_src emacs-lisp :tangle "packages.el" :comments no
-(package! firrtl-mode)
-#+end_src
-
 * Org mode
 #+begin_src emacs-lisp
 (after! org
@@ -764,8 +649,8 @@ Right align org tags
 ** Directories and files
 #+begin_src emacs-lisp
 (setq org-directory (concat (getenv "HOME") "/Org")
-      ak-org-notes-directory (concat org-directory "/notes")
-      ak-zotero-bib-file (concat (getenv "HOME") "/Documents/Zotero/references.bib"))
+      ak/org-notes-directory (concat org-directory "/notes")
+      ak/zotero-bib-file (concat (getenv "HOME") "/Documents/Zotero/references.bib"))
 #+end_src
 
 Capture files
@@ -885,8 +770,8 @@ Require org-ref and set defaults
 (require 'org-ref) ;For some reason `use-package!' does not work for org-ref, TODO Figure out why
 (setq org-ref-open-pdf-function 'org-ref-open-pdf-at-point
       org-ref-get-pdf-filename-function 'org-ref-get-pdf-filename-helm-bibtex
-      org-ref-notes-directory ak-org-notes-directory
-      org-ref-default-bibliography ak-zotero-bib-file
+      org-ref-notes-directory ak/org-notes-directory
+      org-ref-default-bibliography ak/zotero-bib-file
       org-ref-cite-onclick-function 'org-ref-cite-click-helm
       org-ref-notes-function 'orb-edit-notes)
 #+end_src
@@ -916,7 +801,7 @@ Remap refile keys for more convenient org-ref keymap
 Setup org roam
 #+begin_src emacs-lisp
 (after! org-roam
-  (setq org-roam-directory ak-org-notes-directory)
+  (setq org-roam-directory ak/org-notes-directory)
   (custom-set-faces! `(org-roam-link :foreground ,(doom-color 'violet) :weight bold :slant italic :underline t))
 #+end_src
 
@@ -976,18 +861,21 @@ Defaults for org noter
         org-noter-doc-split-fraction '(0.2 . 0.8)
         org-noter-hide-other nil
         org-noter-always-create-frame nil
-        org-noter-notes-search-path (list ak-org-notes-directory)
+        org-noter-notes-search-path (list ak/org-notes-directory)
         org-noter-separate-notes-from-heading nil)
 
   (map! :map org-noter-doc-mode-map
         :leader
         :localleader
-        :desc "Insert note" :n "i" #'org-noter-insert-note
-        :desc "Insert precise note" :n "p" #'org-noter-insert-precise-note
-        :desc "Go to previous note" :n "k" #'org-noter-sync-prev-note
-        :desc "Go to next note" :n "j" #'org-noter-sync-next-note
-        :desc "Create skeleton" :n "s" #'org-noter-create-skeleton
-        :desc "Kill session" :n "q" #'org-noter-kill-session))
+        :desc "Insert note" :ni "i" #'org-noter-insert-note
+        :desc "Insert precise note" :ni "p" #'org-noter-insert-precise-note
+        :desc "Go to previous note" :ni "k" #'org-noter-sync-prev-note
+        :desc "Go to next note" :ni "j" #'org-noter-sync-next-note
+        :desc "Create skeleton" :ni "s" #'org-noter-create-skeleton
+        :desc "Kill session" :ni "q" #'org-noter-kill-session)
+
+  (add-hook! org-noter-doc-mode 'evil-normal-state))
+
 #+end_src
 
 ** LaTeX and Beamer export
@@ -1015,6 +903,174 @@ For presenting org-mode files
 
 #+begin_src emacs-lisp
 (use-package! org-tree-slide)
+#+end_src
+
+* Completion frameworks
+** Ivy
+*** Find file actions
+Add find file actions to open eshell and vterm.
+#+begin_src emacs-lisp
+(after! ivy
+  (defun ak/counsel-find-file-eshell-popup-here-action (path)
+    "Ivy action for `counsel-find-file' to open an `eshell' popup.
+     Opens the popup in or changes directory of existing workspace popup to
+     to the currently matched directory."
+    (let ((dir (if (f-dir-p path)
+                   path
+                 (file-name-directory path)))
+          (eshell-buffer
+           (get-buffer-create
+            (format "*doom:eshell-popup:%s*"
+                    (if (bound-and-true-p persp-mode)
+                        (safe-persp-name (get-current-persp))
+                      "main")))))
+      (with-current-buffer eshell-buffer
+        (doom-mark-buffer-as-real-h)
+        (if (ring-member +eshell-buffers eshell-buffer)
+            (+eshell-run-command (format "cd \"%s\"" dir) eshell-buffer)
+          (let ((default-directory dir))
+            (eshell-mode)))
+        (pop-to-buffer eshell-buffer))))
+
+  (defun ak/counsel-find-file-vterm-popup-here-action (path)
+    "Ivy action for `counsel-find-file' to open a `vterm' popup.
+     Opens the popup in or changes directory of existing workspace popup to
+     the currently matched directory."
+    (let ((dir (if (f-dir-p path)
+                   path
+                 (file-name-directory path)))
+          (vterm-buffer
+           (get-buffer-create
+            (format "*doom:vterm-popup:%s*"
+                    (if (bound-and-true-p persp-mode)
+                        (safe-persp-name (get-current-persp))
+                      "main")))))
+      (with-current-buffer vterm-buffer
+        (if (eq major-mode 'vterm-mode)
+            (progn (vterm-send-string (format "cd \"%s\"" dir))
+                   (vterm-send-return))
+          (progn (cd dir)
+                 (vterm-mode)))
+          (pop-to-buffer vterm-buffer))))
+
+  (ivy-set-actions
+   'counsel-find-file
+   '(("e" ak/counsel-find-file-eshell-popup-here-action "eshell here")
+     ("t" ak/counsel-find-file-vterm-popup-here-action "vterm here"))))
+#+end_src
+
+*** Ivy Bibtex
+Ivy-bibtex and bibtex completion for easily interacting with Zotero library. Also required by org-ref and org-roam-bibtex.
+#+begin_src emacs-lisp :tangle "packages.el" :comments no
+(package! ivy-bibtex)
+#+end_src
+
+Set defaults
+#+begin_src emacs-lisp
+(use-package! ivy-bibtex
+  :config
+  (setq bibtex-completion-notes-path ak/org-notes-directory
+        bibtex-completion-bibliography ak/zotero-bib-file
+        bibtex-completion-pdf-field "file"
+        bibtex-completion-edit-notes-function (lambda (keys)
+                                                (orb-edit-notes (car keys))))
+#+end_src
+
+Keybinding to open ivy-bibtex
+#+begin_src emacs-lisp
+  (map! :leader
+        :desc "Ivy-bibtex" :n "ob"
+        #'ivy-bibtex))
+#+end_src
+
+** Company
+Increase minimum prefix length
+#+begin_src emacs-lisp
+(after! company
+  (setq company-minimum-prefix-length 3))
+#+end_src
+
+* Prog mode
+** LSP mode
+Disable doc on cursor hover
+#+begin_src emacs-lisp
+(setq lsp-log-io nil)
+(add-hook 'lsp-ui-doc-mode-hook
+            (lambda ()
+              (when lsp-ui-doc-mode
+                (remove-hook 'post-command-hook #'lsp-ui-doc--make-request t))))
+#+end_src
+
+Key binding to format buffer
+#+begin_src emacs-lisp
+(map! :leader
+      :desc "Format buffer" :n "cf" #'lsp-format-buffer)
+#+end_src
+
+Key bindings to glance doc
+#+begin_src emacs-lisp
+(map! :map lsp-ui-doc-mode-map
+      :desc "+lsp/hover" :n "gh" #'lsp-ui-doc-glance)
+#+end_src
+
+** GDB
+#+begin_src emacs-lisp
+(setq gdb-show-main t
+      gdb-many-windows t)
+#+end_src
+
+** Python
+Configure mspyls
+#+begin_src emacs-lisp
+(setq lsp-python-ms-extra-paths ["./src/python" "./configs"])
+#+end_src
+
+Use format-all for python to format with Black
+#+begin_src emacs-lisp
+(add-hook 'python-mode-hook #'format-all-mode)
+#+end_src
+
+** C/C++
+#+begin_src emacs-lisp
+#+end_src
+
+** Scala
+Always open sbt buffer as popup and add keybinding
+#+begin_src emacs-lisp
+(after! sbt-mode
+  (set-popup-rule! "^\\*sbt" :vslot -5 :size 0.35 :select t :modeline nil :quit nil :ttl nil))
+#+end_src
+
+Function to toggle the sbt buffer popup
+#+begin_src emacs-lisp
+(defun ak/sbt-toggle()
+  "Toggle sbt buffer popup window or create a new one if none exists"
+  (interactive)
+  (let* ((project-root (or (sbt:find-root)
+                           (error "Could not find project root, type `C-h f sbt:find-root` for help.")))
+         (buffer-name (sbt:buffer-name))
+         (window (get-buffer-window buffer-name)))
+    (if-let (win (get-buffer-window buffer-name))
+        (delete-window win)
+      (sbt-start))))
+
+(after! scala-mode
+  (map! :map scala-mode-map
+        :leader
+        :desc "Run sbt" :n "os" #'ak/sbt-toggle))
+#+end_src
+
+Add hook to format buffer before saving scala files
+#+begin_src emacs-lisp
+(add-hook 'scala-mode-hook
+  (lambda ()
+    (add-hook 'before-save-hook 'lsp-format-buffer nil 'make-it-local)))
+#+end_src
+
+** Firrtl mode
+For easily reading FIRRTL files emmited by Chisel
+#+begin_src emacs-lisp :tangle "packages.el" :comments no
+(package! firrtl-mode)
 #+end_src
 
 * Terminals and shells
