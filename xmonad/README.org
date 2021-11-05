@@ -1,0 +1,18 @@
+#+title: Xmonad configuration
+#+author: Arun
+#+property: header-args:haskell :tangle "xmonad.hs"
+
+This is my Xmonad configuration. Xmonad is a dynamic tiling window manager that is written and configured in Haskell.
+
+[[http://xmonad.org][Xmonad Website]]
+
+* Imports
+#+begin_src haskell
+import XMonad
+#+end_src
+
+* Main
+#+begin_src haskell
+main :: IO ()
+main = xmonad def
+#+end_src
