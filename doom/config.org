@@ -80,7 +80,7 @@ doom-quit         ; DOOM quit-message prompts when you quit Emacs
 ;;(emoji +unicode)  ; 🙂
 ;;fill-column       ; a `fill-column' indicator
 hl-todo           ; highlight TODO/FIXME/NOTE/DEPRECATED/HACK/REVIEW
-;;hydra
+hydra
 ;;indent-guides     ; highlighted indent columns
 ;;ligatures         ; ligatures and symbols to make your code pretty again
 ;;minimap           ; show a map of the code on the side
@@ -94,7 +94,7 @@ treemacs          ; a project drawer, like neotree but cooler
 ;;unicode           ; extended unicode support for various languages
 vc-gutter         ; vcs diff in the fringe
 vi-tilde-fringe   ; fringe tildes to mark beyond EOB
-;;window-select     ; visually switch windows
+window-select     ; visually switch windows
 workspaces        ; tab emulation, persistence & separate workspaces
 ;;zen               ; distraction-free coding or writing
 #+end_src
@@ -197,7 +197,7 @@ emacs-lisp        ; drown in parentheses
 ;;fstar             ; (dependent) types and (monadic) effects and Z3
 ;;gdscript          ; the language you waited for
 ;;(go +lsp)         ; the hipster dialect
-;;(haskell +dante)  ; a language that's lazier than I am
+(haskell +lsp)  ; a language that's lazier than I am
 ;;hy                ; readability of scheme w/ speed of python
 ;;idris             ; a language you can depend on
 ;;json              ; At least it ain't XML
@@ -265,11 +265,8 @@ literate
 #+end_src
 
 ** Packages
-:PROPERTIES:
-:header-args:emacs-lisp: :tangle "packages.el" :comments no
-:END:
-A literate packages.el. This file is used to declare external packages. Declaritions done are beside packages configurations, [[*Beacon][like so]].
-#+begin_src emacs-lisp
+A literate packages.el. This file is used to declare external packages. Declarations are done beside packages configurations, [[*Beacon][like so]].
+#+begin_src emacs-lisp :tangle "packages.el" :comments no
 ;; -*- no-byte-compile: t; -*-
 #+end_src
 
@@ -288,7 +285,8 @@ Keybindings for convenient buffer and window manipulation
 (map! :leader
       :desc "Switch workspace buffer other window" :n "bw" #'+ivy/switch-workspace-buffer-other-window
       :desc "Switch buffer other window" :n "bW" #'+ivy/switch-buffer-other-window
-      :desc "Kill buffer and window" :n "bD" #'kill-buffer-and-window)
+      :desc "Kill buffer and window" :n "bD" #'kill-buffer-and-window
+      :desc "Window nav hydra" :n "wn" #'+hydra/window-nav/body)
 #+end_src
 
 Split windows vertically by default
@@ -339,9 +337,10 @@ Functions to lookup random words in the dictionary definitions and synonyms
 (doom/reload-theme)
 #+end_src
 
-*** Full screen
+*** Initial screen
 #+begin_src emacs-lisp
-(toggle-frame-fullscreen)
+;;(toggle-frame-fullscreen)
+(add-to-list 'initial-frame-alist '(fullscreen . maximized))
 #+end_src
 
 *** Dashboard
@@ -465,7 +464,7 @@ Key binding to toggle modeline
 #+begin_src emacs-lisp
 (map! :leader
       :desc "Modeline" :n "tm"
-      #'doom-modeline-mode)
+      #'hide-mode-line-mode)
 #+end_src
 
 *** Evil state indicators
@@ -484,8 +483,8 @@ Change faces of evil indicators
 *** Battery and time
 Display battery and time in modeline
 #+begin_src emacs-lisp
-(display-battery-mode 1)
-(display-time-mode 1)
+;; (display-battery-mode 1)
+;; (display-time-mode 1)
 #+end_src
 
 *** TODO Change `doom-modeline-buffer-file-name' based on window size
@@ -896,13 +895,73 @@ Setup latex and beamer export
 #+end_src
 
 ** Org-tree-slide
-For presenting org-mode files
+For presenting org-mode files. Using my own config instead of (org +present) because it seemed too finicky, although most of it is same as that of doom's.
 #+begin_src emacs-lisp :tangle "packages.el" :comments no
 (package! org-tree-slide)
 #+end_src
 
+Helper functions
 #+begin_src emacs-lisp
-(use-package! org-tree-slide)
+(defvar +org-present-text-scale 2
+  "The `text-scale-amount' for `org-tree-slide-mode'.")
+
+(defun ak/org-tree-slide-toggle-blocks-h ()
+  "Hide or show org #+ constructs."
+  (save-excursion
+    (goto-char (point-min))
+    (while (re-search-forward "^[[:space:]]*\\(#\\+\\)\\(\\(?:BEGIN\\|END\\|ATTR\\)[^[:space:]]+\\).*" nil t)
+      (org-flag-region (match-beginning 1)
+                       (match-end 0)
+                       org-tree-slide-mode
+                       t))))
+
+(defun ak/org-tree-slide--cleanup ()
+  (unless (cl-loop for buf in (doom-buffers-in-mode 'org-mode)
+                   if (buffer-local-value 'org-tree-slide-mode buf)
+                   return t)
+    (org-tree-slide-mode -1)
+    (remove-hook 'kill-buffer-hook #'+org-present--cleanup-org-tree-slides-mode
+                 'local)))
+
+(defun ak/org-tree-slide-prettify-slide-h ()
+  "Set up the org window for presentation."
+  (let ((arg (if org-tree-slide-mode +1 -1)))
+    (hide-mode-line-mode arg)
+    (+org-pretty-mode arg)
+    (display-line-numbers-mode (- arg))
+    (beacon-mode (- arg))
+    (cond (org-tree-slide-mode
+           (set-window-fringes nil 0 0)
+           (when (bound-and-true-p flyspell-mode)
+             (flyspell-mode -1))
+           (add-hook 'kill-buffer-hook #'ak/org-tree-slide--cleanup
+                     nil 'local)
+           (text-scale-set +org-present-text-scale)
+           (ignore-errors (org-latex-preview '(4))))
+          (t
+           (text-scale-set 0)
+           (set-window-fringes nil fringe-mode fringe-mode)
+           (org-clear-latex-preview)
+           (org-remove-inline-images)
+           (org-mode)))
+    (redraw-display)))
+#+end_src
+
+Configure
+#+begin_src emacs-lisp
+(use-package! org-tree-slide
+  :config
+  (add-hook 'org-tree-slide-play-hook #'ak/org-tree-slide-toggle-blocks-h)
+  (add-hook 'org-tree-slide-stop-hook #'ak/org-tree-slide-toggle-blocks-h)
+  (add-hook 'org-tree-slide-mode-hook #'ak/org-tree-slide-prettify-slide-h)
+  (add-hook 'org-tree-slide-after-narrow-hook #'org-display-inline-images)
+  (map! :map org-tree-slide-mode-map
+        :n [C-right] #'org-tree-slide-move-next-tree
+        :n [C-left]  #'org-tree-slide-move-previous-tree)
+  (add-hook 'org-tree-slide-mode-hook #'evil-normalize-keymaps)
+  (map! :map org-mode-map
+        :leader
+        :desc "Present" :n "tp" #'org-tree-slide-mode))
 #+end_src
 
 * Completion frameworks
@@ -912,7 +971,7 @@ Add find file actions to open eshell and vterm.
 #+begin_src emacs-lisp
 (after! ivy
   (defun ak/counsel-find-file-eshell-popup-here-action (path)
-    "Ivy action for `counsel-find-file' to open an `eshell' popup.
+    "Open an `eshell' popup from `counsel-find-file'.
      Opens the popup in or changes directory of existing workspace popup to
      to the currently matched directory."
     (let ((dir (if (f-dir-p path)
@@ -933,7 +992,7 @@ Add find file actions to open eshell and vterm.
         (pop-to-buffer eshell-buffer))))
 
   (defun ak/counsel-find-file-vterm-popup-here-action (path)
-    "Ivy action for `counsel-find-file' to open a `vterm' popup.
+    "Open an `vterm' popup from `counsel-find-file'.
      Opens the popup in or changes directory of existing workspace popup to
      the currently matched directory."
     (let ((dir (if (f-dir-p path)
@@ -1035,16 +1094,18 @@ Use format-all for python to format with Black
 #+end_src
 
 ** Scala
-Always open sbt buffer as popup and add keybinding
+Always open sbt buffer as popup and add keybinding for hydra.
 #+begin_src emacs-lisp
 (after! sbt-mode
-  (set-popup-rule! "^\\*sbt" :vslot -5 :size 0.35 :select t :modeline nil :quit nil :ttl nil))
+  (set-popup-rule! "^\\*sbt" :vslot -5 :size 0.35 :select t :modeline nil :quit nil :ttl nil)
+  (map! :map sbt:mode-map
+        :niv "C-o" #'sbt-hydra))
 #+end_src
 
 Function to toggle the sbt buffer popup
 #+begin_src emacs-lisp
 (defun ak/sbt-toggle()
-  "Toggle sbt buffer popup window or create a new one if none exists"
+  "Toggle sbt buffer popup window or create a new one if none exists."
   (interactive)
   (let* ((project-root (or (sbt:find-root)
                            (error "Could not find project root, type `C-h f sbt:find-root` for help.")))
@@ -1082,14 +1143,75 @@ Set default vterm shell
 
 Browse shell history in vterm
 #+begin_src emacs-lisp
-(map! :map vterm-mode-map
-      :n   "-" #'vterm-send-up
-      :n   "=" #'vterm-send-down
-      :niv "C-c C-k" #'vterm-previous-prompt
-      :niv "C-c C-j" #'vterm-next-prompt)
+(after! vterm
+  (map! :map vterm-mode-map
+        :n   "-" #'vterm-send-up
+        :n   "=" #'vterm-send-down
+        :niv "C-c C-k" #'vterm-previous-prompt
+        :niv "C-c C-j" #'vterm-next-prompt))
 #+end_src
 
-*** TODO Vterm Ivy mode
+*** Vterm Ivy
+A completion interface for zsh in vterm with ivy.
+#+begin_src emacs-lisp
+(after! (vterm ivy)
+  (defcustom ak/vterm-ivy-zsh-history-file "~/.zsh_history"
+    "File containing zsh history."
+    :type 'string
+    :group 'vterm)
+
+  (defcustom ak/vterm-ivy-zsh-history-lines 10000
+    "Number of lines to read form `ak/vterm-ivy-zsh-history-file'."
+    :type 'integer
+    :group 'vterm)
+
+  (defun ak/vterm-ivy-get-zsh-history (n)
+    "Read N lines from `ak/vterm-ivy-zsh-history-file'.
+     Also formats commands and removes duplicates."
+    (with-temp-buffer
+      (insert-file-contents ak/vterm-ivy-zsh-history-file)
+      (let* ((all-lines (split-string (buffer-string) "\n" t))
+             (nlines (length all-lines))
+             (lines (if (< n nlines)
+                        (nthcdr (- nlines n) all-lines)
+                      (all-lines)))
+                    (sl-cmds))
+             (dolist (line lines sl-cmds)
+               (if (string-match-p "^:" line)
+                   (let* ((split-cmd (cdr (split-string line ";")))
+                          (formatted-cmd))
+                     (if (cdr split-cmd)
+                         (dolist (frag split-cmd formatted-cmd)
+                           (concat formatted-cmd ";" frag))
+                       (setq formatted-cmd (car split-cmd)))
+                     (push formatted-cmd sl-cmds))
+                 (push (concat (pop sl-cmds) line) sl-cmds)))
+             (delete-dups sl-cmds))))
+
+  (defun ak/vterm-ivy-zsh-history ()
+    "Send command string from zsh history to `vterm'."
+    (interactive)
+    (if (eq major-mode 'vterm-mode)
+        (let* ((beg (vterm--get-prompt-point))
+               (end (vterm--get-cursor-point))
+               (input (buffer-substring-no-properties
+                       beg
+                       end)))
+          (ivy-read "Command: "
+                    (ak/vterm-ivy-get-zsh-history ak/vterm-ivy-zsh-history-lines)
+                    :initial-input input
+                    :history nil
+                    :action (lambda (x)
+                              (vterm-delete-region beg end)
+                              (vterm-send-string x))))))
+
+  (add-to-list 'ivy-sort-functions-alist '(ak/vterm-ivy-zsh-history))
+
+  (map! :map vterm-mode-map
+        :leader
+        :localleader
+        :desc "Search zsh history" :n "s" #'ak/vterm-ivy-zsh-history))
+#+end_src
 
 ** zsh environment quick edit
 Key bindings to edit the .zshrc and .env files
