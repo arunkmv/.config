@@ -334,13 +334,13 @@ Functions to lookup random words in the dictionary definitions and synonyms
       display-line-numbers-type 'relative
       display-time-default-load-average nil)
 
-(doom/reload-theme)
+(add-hook 'doom-after-init-modules-hook #'doom/reload-theme 100)
 #+end_src
 
 *** Initial screen
 #+begin_src emacs-lisp
 ;;(toggle-frame-fullscreen)
-(add-to-list 'initial-frame-alist '(fullscreen . maximized))
+(add-to-list 'default-frame-alist '(fullscreen . maximized))
 #+end_src
 
 *** Dashboard
@@ -499,8 +499,11 @@ Beacon to never lose my cursor again
 (use-package! beacon
   :hook (doom-after-init-modules . beacon-mode)
   :config
-  (after! doom-themes
-    (setq beacon-color (doom-color 'orange))))
+  (defun ak/set-beacon-theme-color-h ()
+    "Set the beacon theme color to orange according to current theme"
+    (setq beacon-color (doom-color 'orange)))
+  (add-hook! 'doom-load-theme-hook :append
+            #'ak/set-beacon-theme-color-h))
 #+end_src
 
 * Tools
@@ -1174,7 +1177,7 @@ A completion interface for zsh in vterm with ivy.
              (nlines (length all-lines))
              (lines (if (< n nlines)
                         (nthcdr (- nlines n) all-lines)
-                      (all-lines)))
+                      all-lines))
                     (sl-cmds))
              (dolist (line lines sl-cmds)
                (if (string-match-p "^:" line)
