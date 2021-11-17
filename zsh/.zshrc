@@ -1,4 +1,7 @@
-source $HOME/.env
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export LANGUAGE=en_US.UTF-8
+export OH_MY_ZSH=$HOME/.oh-my-zsh
 
 ZSH_THEME="robbyrussell"
 
@@ -7,10 +10,6 @@ plugins=(git zsh-autosuggestions zsh-syntax-highlighting)
 source $OH_MY_ZSH/oh-my-zsh.sh
 
 alias zrc="source $ZDOTDIR/.zshrc"
-
-export LC_ALL=en_US.UTF-8
-export LANG=en_US.UTF-8
-export LANGUAGE=en_US.UTF-8
 
 if [ $INSIDE_EMACS ]; then
 

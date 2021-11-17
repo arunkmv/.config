@@ -329,7 +329,7 @@ Functions to lookup random words in the dictionary definitions and synonyms
 * UI
 ** Appearance
 #+begin_src emacs-lisp
-(setq doom-font (font-spec :family "Source Code Pro for Powerline" :size 21 :weight 'Regular)
+(setq doom-font (font-spec :family "Source Code Pro" :size 16 :weight 'Regular)
       doom-theme 'doom-gruvbox-mod
       display-line-numbers-type 'relative
       display-time-default-load-average nil)
