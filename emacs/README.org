@@ -1,0 +1,606 @@
+#+TITLE: Emacs Configuration
+#+PROPERTY: header-args:emacs-lisp :tangle init.el :comments link
+
+This is my literate configuration for Emacs.
+
+* Installation
+Please run the following to generate init.el when initially setting up emacs.
+#+begin_src shell :tangle no
+emacs --batch --eval "(progn (require 'org) (setq org-confirm-babel-evaluate nil) (org-babel-tangle-file \"~/.config/doom/config.org\"))"
+#+end_src
+
+* Startup
+Turn on lexical binding in init.el
+#+begin_src emacs-lisp
+;;; init.el -*- lexical-binding: t; -*-
+#+end_src
+
+Reduce garbage collection frequency for faster startup and use a hook to measure Emacs startup time.
+#+begin_src emacs-lisp
+(setq gc-cons-threshold (* 50 1000 1000))
+
+;; Profile emacs startup
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (message "*** Emacs loaded in %s with %d garbage collections."
+                     (format "%.2f seconds"
+                             (float-time
+                              (time-subtract after-init-time before-init-time)))
+                     gcs-done)))
+#+end_src
+
+* Package management
+Define local directory.
+#+begin_src emacs-lisp
+(defconst ak/local-dir
+  (concat user-emacs-directory ".local/")
+  "Directory local storage")
+#+end_src
+
+Using =straight.el= for package management.
+#+begin_src emacs-lisp
+  (setq straight-base-dir (file-truename ak/local-dir))
+#+end_src
+
+Bootstrap straight.
+#+begin_src emacs-lisp
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name "straight/repos/straight.el/bootstrap.el" ak/local-dir))
+      (bootstrap-version 5))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+#+end_src
+
+Use straight to install packages by default and in use-package expressions.
+#+begin_src emacs-lisp
+(setq straight-use-package-by-default t)
+(straight-use-package 'use-package)
+#+end_src
+
+** Keep .emacs.d clean
+Define cache directories.
+#+begin_src emacs-lisp
+(defconst ak/etc-dir
+  (concat ak/local-dir "etc/"))
+
+(defconst ak/var-dir
+  (concat ak/local-dir "var/"))
+#+end_src
+
+No littering
+#+begin_src emacs-lisp
+  (use-package no-littering
+    :init
+    (setq no-littering-etc-directory ak/etc-dir
+	  no-littering-var-directory ak/var-dir))
+#+end_src
+
+* Keybindings
+Core configurations for keybindings.
+** Undo tree
+Use =undo-tree= for vim-like undo.
+#+begin_src emacs-lisp
+(use-package undo-tree
+  :init
+  (global-undo-tree-mode 1))
+#+end_src
+
+** Evil mode
+Vim keys in Emacs using =evil=.
+#+begin_src emacs-lisp
+  (use-package evil
+    :init
+    (setq evil-want-integration t
+	  evil-want-keybinding nil
+	  evil-want-C-i-jump nil
+	  evil-respect-visual-line-mode t
+	  evil-undo-system 'undo-tree)
+    :config
+    (evil-mode 1)
+    (setq-default
+     evil-emacs-state-tag          " E "
+     evil-normal-state-tag         " N "
+     evil-insert-state-tag         " I "
+     evil-visual-char-tag          " V "
+     evil-visual-line-tag          " VL "
+     evil-visual-screen-line-tag   " VSL "
+     evil-visual-block-tag         " VB "
+     evil-motion-state-tag         " M "
+     evil-operator-state-tag       " O "
+     evil-replace-state-tag        " R "))
+#+end_src
+
+=evil-collection= provides better evil bindings for different major modes.
+#+begin_src emacs-lisp
+(use-package evil-collection
+  :after evil
+  :init
+  (setq evil-collection-company-use-tng nil)  ;; Is this a bug in evil-collection?
+  :config
+  (evil-collection-init))
+#+end_src
+
+Use =evil-snipe= for better motion.
+#+begin_src emacs-lisp
+  (use-package evil-snipe
+    :after evil
+    :config
+    (setq evil-snipe-scope 'line
+	  evil-snipe-repeat-scope 'visible)
+    (evil-snipe-mode +1)
+    (evil-snipe-override-mode +1))
+#+end_src
+
+Use =evil-anzu= for better search highlighting.
+#+begin_src emacs-lisp
+  (use-package evil-anzu
+    :config
+    (global-anzu-mode +1))
+#+end_src
+
+** Which key
+Keybinding helper for quick reference with =which-key=.
+#+begin_src emacs-lisp
+(use-package which-key
+  :init (which-key-mode)
+  :diminish which-key-mode
+  :config
+  (setq which-key-idle-delay 0.3))
+#+end_src
+
+** Prefix keybinding
+Use =general.el= for prefixed keybinding.
+#+begin_src emacs-lisp
+(use-package general
+  :config
+  (general-evil-setup t)
+
+  (general-create-definer ak/leader-key-def
+    :keymaps '(normal insert visual emacs)
+    :prefix "SPC"
+    :global-prefix "C-SPC")
+
+  (general-create-definer ak/ctrl-c-key-def
+    :prefix "C-c"))
+#+end_src
+
+** Convenient bindings
+*** Help commands
+#+begin_src emacs-lisp
+  (ak/leader-key-def
+    "h" '(:keymap help-map :which-key "help"))
+#+end_src
+
+*** Find file and switch buffer
+#+begin_src emacs-lisp
+  (ak/leader-key-def
+    "." '(find-file :which-key "Find file")
+    "," '(consult-buffer :which-key "Switch persp buffer"))
+#+end_src
+
+*** Reload init.el
+#+begin_src emacs-lisp
+  (defun reload-init-file ()
+    (interactive)
+    (org-babel-tangle (expand-file-name "README.org" user-emacs-directory))
+    (load-file (expand-file-name "init.el" user-emacs-directory))
+    (message "init.el reloaded"))
+
+  (ak/ctrl-c-key-def
+   "l" 'reload-init-file)
+#+end_src
+
+** MacOS
+Key modifiers for macOS.
+#+begin_src emacs-lisp
+  (when (eq system-type 'darwin)
+    (setq
+     ns-command-modifier 'meta
+     ns-right-option-modifier 'control
+     ns-option-modifier 'super
+     ns-control-modifier 'control
+     ns-function-modifier 'hyper))
+#+end_src
+
+* UI
+** Fonts and icons
+Set font and size.
+#+begin_src emacs-lisp
+ (set-face-attribute 'default nil
+                       :font "Source Code Pro"
+                       :weight 'Regular
+                       :height 170)
+#+end_src
+
+Use =all-the-icons=.
+#+begin_src emacs-lisp
+(use-package all-the-icons
+  :if (display-graphic-p))
+#+end_src
+
+** Clean up Emacs UI
+#+begin_src emacs-lisp
+(setq inhibit-startup-message t)
+(scroll-bar-mode -1)
+(tool-bar-mode -1)
+(tooltip-mode -1)
+(set-fringe-mode 10)
+(menu-bar-mode -1)
+#+end_src
+
+** Frame size
+Always fullscreen.
+#+begin_src emacs-lisp
+(set-frame-parameter nil 'fullscreen 'fullboth)
+  ;;(add-to-list 'default-frame-alist '(fullscreen . maximized))
+#+end_src
+
+** Date and time
+Set date and time display format.
+#+begin_src emacs-lisp
+  (setq display-time-day-and-date t
+	display-time-format "%a %b %d %I:%M%p"
+	display-time-default-load-average nil)
+  (display-time-mode +1)
+#+end_src
+
+** Battery
+Use =fancy-battery= for a nicer battery display
+#+begin_src emacs-lisp
+  (use-package fancy-battery
+    :hook (after-init . fancy-battery-mode)
+    :config
+    (setq fancy-battery-show-percentage t))
+#+end_src
+
+** Dashboard
+Setup a minimal dashboard
+#+begin_src emacs-lisp
+  (use-package dashboard
+    :ensure t
+    :init
+    (dashboard-setup-startup-hook)
+    :config
+    (setq dashboard-banner-logo-title "Welcome to Emacs"
+	  dashboard-startup-banner (expand-file-name "emacs.png" user-emacs-directory)
+	  dashboard-center-content t
+	  dashboard-show-shortcuts nil
+	  dashboard-items '()
+	  initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
+    (dashboard-insert-startupify-lists))
+#+end_src
+
+** Theme
+Trying out =modus-themes=.
+#+begin_src emacs-lisp
+  (use-package modus-themes
+    :init
+    (setq modus-themes-italic-constructs t
+	  modus-themes-bold-constructs nil
+	  modus-themes-syntax '(green-strings)
+	  modus-themes-prompts '(bold intense)
+	  modus-themes-completions
+	  '((matches . (extrabold background))
+	    (selection . (semibold accented))
+	    (popup . (extrabold)))
+	  modus-themes-headings
+	  '((1 . (background overline rainbow 1.4))
+	    (2 . (background rainbow 1.2))
+	    (3 . (background rainbow 1.1))
+	    (t . (rainbow))))
+    (modus-themes-load-themes)
+    :config
+    (modus-themes-load-vivendi))
+#+end_src
+
+** Modeline
+Setup and configure =doom-modeline=.
+#+begin_src emacs-lisp
+  (use-package doom-modeline
+    :ensure t
+    :after (modus-themes)
+    :hook (after-init . doom-modeline-mode)
+    :config
+    (setq doom-modeline-buffer-encoding nil
+	  doom-modeline-major-mode-icon t
+	  doom-modeline-modal-icon nil)
+#+end_src
+
+Remove doom-modeline battery hooks to display battery status in tab bar.
+#+begin_src emacs-lisp
+    (remove-hook 'display-battery-mode-hook 'doom-modeline-override-battery-modeline)
+    (remove-hook 'doom-modeline-mode-hook 'doom-modeline-override-battery-modeline)
+#+end_src
+
+Change faces of modeline evil indicators.
+#+begin_src emacs-lisp
+  (set-face-attribute 'doom-modeline-evil-emacs-state    nil :background (modus-themes-color 'magenta-active)  :foreground "#000000")
+  (set-face-attribute 'doom-modeline-evil-normal-state   nil :background (modus-themes-color 'green-active)    :foreground "#000000")
+  (set-face-attribute 'doom-modeline-evil-insert-state   nil :background (modus-themes-color 'blue)            :foreground "#ffffff")
+  (set-face-attribute 'doom-modeline-evil-visual-state   nil :background (modus-themes-color 'orange-intense)  :foreground "#000000")
+  (set-face-attribute 'doom-modeline-evil-motion-state   nil :background (modus-themes-color 'red-intense)     :foreground "#ffffff")
+  (set-face-attribute 'doom-modeline-evil-operator-state nil :background (modus-themes-color 'yellow-intense)  :foreground "#000000")
+  (set-face-attribute 'doom-modeline-evil-replace-state  nil :background (modus-themes-color 'magenta-intense) :foreground "#ffffff"))
+#+end_src
+
+** Tab bar
+Use the tab bar as a global modeline.
+#+begin_src emacs-lisp
+  (setq tab-bar-format '(tab-bar-format-align-right tab-bar-format-global)
+	auto-resize-tab-bars nil)
+  (tab-bar-mode +1)
+#+end_src
+
+Properly format global mode string as it is used by the tab bar.
+#+begin_src emacs-lisp
+  (defun ak/format-global-mode-string ()
+    (setq global-mode-string '("" (:eval (persp-mode-line)) " | " display-time-string "| " fancy-battery-mode-line " |")))
+
+  (add-hook 'after-init-hook #'ak/format-global-mode-string)
+#+end_src
+
+** Better scrolling
+Add smooth scrolling and mouse scroll support.
+#+begin_src emacs-lisp
+  (setq scroll-step 1
+	mouse-wheel-scroll-amount '(1 ((shift) . 1)) ;; one line at a time
+	mouse-wheel-progressive-speed nil            ;; don't accelerate scrolling
+	mouse-wheel-follow-mouse 't)                 ;; scroll window under mouse
+#+end_src
+
+Add keybindings for scrolling other window. Useful for [[*Embark][Embark]].
+#+begin_src emacs-lisp
+  (general-define-key
+   "C->" 'scroll-other-window
+   "C-<" 'scroll-other-window-down)
+#+end_src
+
+** Highlight cursor
+=pulsar= to highlight cursor location.
+#+begin_src emacs-lisp
+  (use-package pulsar
+    :config
+    (setq pulsar-pulse-on-window-change t)
+    (setq pulsar-delay 0.06)
+    (setq pulsar-iterations 10)
+    (setq pulsar-face 'pulsar-generic))
+#+end_src
+
+* Completion
+** Vertico
+A streamlined minimal and performant completion with =vertico.el=
+#+begin_src emacs-lisp
+  (use-package vertico
+    :ensure t
+    :bind (:map vertico-map
+	   ("C-j" . vertico-next)
+	   ("C-k" . vertico-previous)
+	   ("M-RET" . vertico-exit-input)
+	   :map minibuffer-local-map
+	   ("M-h" . backward-kill-word))
+    :custom
+    (vertico-cycle t)
+    :init
+    (vertico-mode))
+#+end_src
+
+*** Savehist
+Persist minibuffer history over Emacs restarts with =savehist=.
+#+begin_src emacs-lisp
+(use-package savehist
+  :init
+  (savehist-mode))
+#+end_src
+
+** Marginalia
+=marginalia= for helpful annotations for various types of minibuffer completions.
+#+begin_src emacs-lisp
+(use-package marginalia
+  :after vertico
+  :custom
+  (marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light nil))
+  :init
+  (marginalia-mode))
+#+end_src
+
+** Orderless
+=orderless= completion style.
+#+begin_src emacs-lisp
+(use-package orderless
+  :init
+  (setq completion-styles '(orderless basic)
+        completion-category-defaults nil
+        completion-category-overrides '((file (styles partial-completion)))))
+#+end_src
+
+** Consult
+=consult.el= for practical completing-read commands.
+#+begin_src emacs-lisp
+  (use-package consult
+    :after (perspective)
+    :config
+    (consult-customize consult--source-buffer :hidden t :default nil)
+    (add-to-list 'consult-buffer-sources persp-consult-source))
+#+end_src
+
+** Embark
+Completing actions with =embark=
+#+begin_src emacs-lisp
+    (use-package embark
+      :ensure t
+      :bind (("C-;" . embark-act)
+	     ("C-:" . embark-dwim)
+	     ("C-h B" . embark-bindings))
+      :init
+      (setq prefix-help-command #'embark-prefix-help-command)
+      :config
+      (setq embark-verbose-indicator-display-action '(display-buffer-at-bottom)))
+
+    (use-package embark-consult
+      :after embark)
+#+end_src
+
+** All the icons completion
+#+begin_src emacs-lisp
+(use-package all-the-icons-completion
+  :after (marginalia all-the-icons)
+  :hook (marginalia-mode . all-the-icons-completion-marginalia-setup)
+  :init
+  (all-the-icons-completion-mode))
+#+end_src
+
+* Windows
+** Text scaling
+Scale text with =C-M--= and =C-M-==
+#+begin_src emacs-lisp
+(use-package default-text-scale
+  :defer 1
+  :config
+  (default-text-scale-mode))
+#+end_src
+
+** Ace window
+=ace-window= for easily switching between windows.
+
+#+begin_src emacs-lisp
+  (use-package ace-window
+    :bind (:map evil-window-map
+		("a" . ace-window))
+    :custom
+    (aw-scope 'frame)
+    (aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
+    (aw-minibuffer-flag t)
+    :config
+    (setq aw-dispatch-always t)
+    (ace-window-display-mode 1))
+#+end_src
+
+** Winner
+Window history with =winner=.
+#+begin_src emacs-lisp
+  (use-package winner
+    :bind (:map evil-window-map
+		("u" . winner-undo)
+		("U" . winner-redo))
+    :config
+    (winner-mode))
+#+end_src
+
+** Keybindings
+Bind evil window keys to global prefix.
+#+begin_src emacs-lisp
+  (ak/leader-key-def
+    "w" '(:package evil :keymap evil-window-map :which-key "window"))
+
+  (general-define-key
+   :keymaps 'evil-window-map
+   "d" 'evil-window-delete
+   "c" nil)
+#+end_src
+
+** Popper
+Taming popups with =popper.el=
+#+begin_src emacs-lisp
+  (use-package popper
+    :ensure t ; or :straight t
+    :bind (("C-`"   . popper-toggle-latest)
+	   ("M-`"   . popper-cycle)
+	   ("C-M-`" . popper-toggle-type))
+    :custom
+    (popper-window-height 12)
+    :init
+    (setq popper-reference-buffers
+	  '("\\*Messages\\*"
+	    "Output\\*$"
+	    "\\*Async Shell Command\\*"
+	    help-mode
+	    helpful-mode
+	    compilation-mode)
+	  popper-mode-line 1)
+    (popper-mode 1)
+    (popper-echo-mode 1)) 
+#+end_src
+
+* Buffers and workspaces
+** Perspective
+Workspaces with =perspective=
+#+begin_src emacs-lisp
+    (defun ak/persp-format-modestring-short (modestring)
+      (let ((open (nth 0 modestring))
+	    (name (nth 1 modestring))
+	    (close (nth 2 modestring)))
+	(list open
+	      (propertize name 'face 'persp-selected-face)
+	      close)))
+
+    (defun ak/persp-get-dashboard-buffer (&optional name)
+      (let* ((buffer-name dashboard-buffer-name)
+	     (buffer (get-buffer buffer-name)))
+	(unless buffer
+	  (setq buffer (get-buffer-create buffer-name))
+	  (with-current-buffer buffer
+	    (when (eq major-mode 'fundamental-mode)
+	      (funcall 'dashboard-mode))
+	    (dashboard-refresh-buffer)))
+	    buffer))
+
+	(use-package perspective
+	  :demand t
+	  :custom
+	  (persp-initial-frame-name "main")
+	  :config
+	  (setq persp-suppress-no-prefix-key-warning t
+		persp-show-modestring t
+		persp-modestring-short t
+		persp-sort 'created)
+	  (advice-add 'persp-mode-line :filter-return #'ak/persp-format-modestring-short)
+	  (advice-add 'persp-get-scratch-buffer :override #'ak/persp-get-dashboard-buffer)
+	  ;; Running `persp-mode' multiple times resets the perspective list...
+	  (unless (equal persp-mode t)
+	    (persp-mode)))
+
+	(ak/leader-key-def
+	  "<tab>" '(:keymap perspective-map :which-key "workspace"))
+#+end_src
+* General
+** Helpful
+Better help buffers with =helpful=.
+#+begin_src emacs-lisp
+  (use-package helpful
+    :hook (helpful-mode . visual-line-mode)
+    :init
+    (global-set-key [remap describe-function] #'helpful-callable)
+    (global-set-key [remap describe-command]  #'helpful-command)
+    (global-set-key [remap describe-variable] #'helpful-variable)
+    (global-set-key [remap describe-key]      #'helpful-key)
+    (global-set-key [remap describe-symbol]   #'helpful-symbol))
+#+end_src
+
+* Org Mode
+** Block templates
+Easy org block templates. Type <s and =TAB= for source block.
+#+begin_src emacs-lisp
+  (require 'org-tempo)
+
+  (add-to-list 'org-structure-template-alist '("sh" . "src sh"))
+  (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+#+end_src
+
+* Development
+** Projectile
+Working on projects with =projectile=.
+#+begin_src emacs-lisp
+
+#+end_src
+
+* TODOs
+- Use doom emacs strategy with [[https://gitlab.com/koral/gcmh/][gcmh-mode]]
+- Custom splash screen with vertical centering and theme appropriate fancy splash image 
+  
