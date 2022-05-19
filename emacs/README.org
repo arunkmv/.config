@@ -172,17 +172,18 @@ Use =general.el= for prefixed keybinding.
 #+end_src
 
 ** Convenient bindings
-*** Help commands
-#+begin_src emacs-lisp
-  (ak/leader-key-def
-    "h" '(:keymap help-map :which-key "help"))
-#+end_src
-
-*** Find file and switch buffer
+Setup convenient bindings and other which key prefixes.
 #+begin_src emacs-lisp
   (ak/leader-key-def
     "." '(find-file :which-key "Find file")
-    "," '(consult-buffer :which-key "Switch persp buffer"))
+    "," '(consult-buffer :which-key "Switch persp buffer")
+    "u" '(universal-argument :which-key "Universal argument")
+    "g" '(:ignore t :which-key "git")
+    "h" '(:keymap help-map :which-key "help")
+    "t" '(:ignore t :which-key "toggle"))
+
+  (general-def help-map
+    "F" 'describe-face)
 #+end_src
 
 *** Reload init.el
@@ -241,6 +242,12 @@ Always fullscreen.
 #+begin_src emacs-lisp
 (set-frame-parameter nil 'fullscreen 'fullboth)
   ;;(add-to-list 'default-frame-alist '(fullscreen . maximized))
+#+end_src
+
+Keybinding to toggle fullscreen.
+#+begin_src emacs-lisp
+  (ak/leader-key-def
+    "tF" '(toggle-frame-fullscreen :which-key "Fullscreen"))
 #+end_src
 
 ** Date and time
@@ -317,6 +324,8 @@ Setup and configure =doom-modeline=.
     (setq doom-modeline-buffer-encoding nil
 	  doom-modeline-major-mode-icon t
 	  doom-modeline-modal-icon nil)
+    ;; Show text column number in modeline
+    (column-number-mode)
 #+end_src
 
 Remove doom-modeline battery hooks to display battery status in tab bar.
@@ -334,6 +343,14 @@ Change faces of modeline evil indicators.
   (set-face-attribute 'doom-modeline-evil-motion-state   nil :background (modus-themes-color 'red-intense)     :foreground "#ffffff")
   (set-face-attribute 'doom-modeline-evil-operator-state nil :background (modus-themes-color 'yellow-intense)  :foreground "#000000")
   (set-face-attribute 'doom-modeline-evil-replace-state  nil :background (modus-themes-color 'magenta-intense) :foreground "#ffffff"))
+#+end_src
+
+*** Hide modeline
+#+begin_src emacs-lisp
+  (use-package hide-mode-line
+    :config
+    (ak/leader-key-def
+      "tm" '(hide-mode-line-mode :which-key "Modeline")))
 #+end_src
 
 ** Tab bar
@@ -378,6 +395,49 @@ Add keybindings for scrolling other window. Useful for [[*Embark][Embark]].
     (setq pulsar-delay 0.06)
     (setq pulsar-iterations 10)
     (setq pulsar-face 'pulsar-generic))
+#+end_src
+
+** Line numbers
+Configure display line numbers.
+#+begin_src emacs-lisp
+    (setq-default display-line-numbers-width 3)
+    (setq-default display-line-numbers-type 'relative)
+    (setq-default display-line-numbers-widen t)
+    (dolist (mode '(text-mode-hook
+		    prog-mode-hook
+		    conf-mode-hook))
+      (add-hook mode (lambda () (display-line-numbers-mode 1))))
+#+end_src
+
+*** Toggle line numbers
+Function to toggle display line numbers.
+#+begin_src emacs-lisp
+  (defun ak/toggle-line-numbers ()
+    "Toggle line numbers.
+
+  Cycles through regular, relative and no line numbers. The order depends on what
+  `display-line-numbers-type' is set to. If you're using Emacs 26+, and
+  visual-line-mode is on, this skips relative and uses visual instead.
+
+  See `display-line-numbers' for what these values mean."
+    (interactive)
+    (defvar ak/line-number-style display-line-numbers-type)
+    (let* ((styles `(t ,(if visual-line-mode 'visual 'relative) nil))
+	   (order (cons display-line-numbers-type (remq display-line-numbers-type styles)))
+	   (queue (memq ak/line-number-style order))
+	   (next (if (= (length queue) 1)
+		     (car order)
+		   (car (cdr queue)))))
+      (setq ak/line-number-style next)
+      (setq display-line-numbers next)
+      (message "Switched to %s line numbers"
+	       (pcase next
+		 (`t "normal")
+		 (`nil "disabled")
+		 (_ (symbol-name next))))))
+
+  (ak/leader-key-def
+    "tl" '(ak/toggle-line-numbers :which-key "Line numbers"))
 #+end_src
 
 * Completion
@@ -656,26 +716,55 @@ Easy org block templates. Type <s and =TAB= for source block.
 ** Magit
 Easy git management with =magit=.
 #+begin_src emacs-lisp
-(use-package magit
-  :commands (magit-status magit-get-current-branch)
-  :custom
-  (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
+  (use-package magit
+    :commands (magit-status magit-get-current-branch)
+    :custom
+    (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
 
-(ak/leader-key-def
-  "g"   '(:ignore t :which-key "git")
-  "gg"  'magit-status
-  "gd"  'magit-diff-unstaged
-  "gc"  'magit-branch-or-checkout
-  "gl"   '(:ignore t :which-key "log")
-  "glc" 'magit-log-current
-  "glf" 'magit-log-buffer-file
-  "gb"  'magit-branch
-  "gP"  'magit-push-current
-  "gp"  'magit-pull-branch
-  "gf"  'magit-fetch
-  "gF"  'magit-fetch-all
-  "gr"  'magit-rebase)
+  (ak/leader-key-def
+    "gg"  'magit-status
+    "gd"  'magit-diff-unstaged
+    "gc"  'magit-branch-or-checkout
+    "gl"   '(:ignore t :which-key "log")
+    "glc" 'magit-log-current
+    "glf" 'magit-log-buffer-file
+    "gb"  'magit-branch
+    "gP"  'magit-push-current
+    "gp"  'magit-pull-branch
+    "gf"  'magit-fetch
+    "gF"  'magit-fetch-all
+    "gr"  'magit-rebase)
 #+end_src
+
+** Git Gutter
+View file changes with the =git-gutter=.
+#+begin_src emacs-lisp
+    (use-package git-gutter
+      :hook ((text-mode . git-gutter-mode)
+	     (prog-mode . git-gutter-mode))
+      )
+#+end_src
+
+Prettier gutter with =git-gutter-fringe=.
+#+begin_src emacs-lisp
+  (use-package git-gutter-fringe
+    :defer t
+    :config
+    (set-face-foreground 'git-gutter-fr:modified (modus-themes-color 'yellow-faint))
+    (set-face-foreground 'git-gutter-fr:added    (modus-themes-color 'green-faint))
+    (set-face-foreground 'git-gutter-fr:deleted  (modus-themes-color 'red-faint))
+
+    (if (fboundp 'fringe-mode) (fringe-mode '4))
+    ;; places the git gutter outside the margins.
+    (setq-default fringes-outside-margins t)
+    (define-fringe-bitmap 'git-gutter-fr:added [224]
+      nil nil '(center repeated))
+    (define-fringe-bitmap 'git-gutter-fr:modified [224]
+      nil nil '(center repeated))
+    (define-fringe-bitmap 'git-gutter-fr:deleted [128 192 224 240]
+      nil nil 'bottom))
+#+end_src
+
 ** Projectile
 Working on projects with =projectile=.
 #+begin_src emacs-lisp
