@@ -188,6 +188,7 @@ Use =general.el= for prefixed keybinding.
 *** Reload init.el
 #+begin_src emacs-lisp
   (defun reload-init-file ()
+    "Reload init.el"
     (interactive)
     (org-babel-tangle (expand-file-name "README.org" user-emacs-directory))
     (load-file (expand-file-name "init.el" user-emacs-directory))
@@ -260,6 +261,11 @@ Use =fancy-battery= for a nicer battery display
     (setq fancy-battery-show-percentage t))
 #+end_src
 
+** Don't ring the bell
+#+begin_src emacs-lisp
+  (setq ring-bell-function 'ignore)
+#+end_src
+
 ** Dashboard
 Setup a minimal dashboard
 #+begin_src emacs-lisp
@@ -291,9 +297,9 @@ Trying out =modus-themes=.
 	    (selection . (semibold accented))
 	    (popup . (extrabold)))
 	  modus-themes-headings
-	  '((1 . (background overline rainbow 1.4))
-	    (2 . (background rainbow 1.2))
-	    (3 . (background rainbow 1.1))
+	  '((1 . (background overline rainbow 1.25))
+	    (2 . (background rainbow 1.1))
+	    (3 . (background rainbow 1.05))
 	    (t . (rainbow))))
     (modus-themes-load-themes)
     :config
@@ -341,6 +347,7 @@ Use the tab bar as a global modeline.
 Properly format global mode string as it is used by the tab bar.
 #+begin_src emacs-lisp
   (defun ak/format-global-mode-string ()
+    "Format `global-mode-string' to display perspective, time and battery"
     (setq global-mode-string '("" (:eval (persp-mode-line)) " | " display-time-string "| " fancy-battery-mode-line " |")))
 
   (add-hook 'after-init-hook #'ak/format-global-mode-string)
@@ -531,16 +538,55 @@ Taming popups with =popper.el=
 * Buffers and workspaces
 ** Perspective
 Workspaces with =perspective=
+*** Functions
+A few convinence functions for using persp-mode.
+
+**** Display perspectives.
+#+begin_src emacs-lisp
+  (defun ak/persp-display ()
+    "Display numbered perspectives tabs at the bottom of the screen"
+    (interactive)
+    (let* ((persps (persp-names))
+	   (current-persp (persp-current-name))
+	   (tab-line (mapconcat
+		      #'identity
+		      (cl-loop for persp in persps
+			       for i to (length persps)
+			       collect
+			       (propertize (format " [%d] %s " (1+ i) persp)
+					   'face (if (equal current-persp persp)
+						     'highlight
+						   'default)))
+		      " ")))
+      (message "%s" tab-line)))
+#+end_src
+
+**** Kill the current perspective.
+#+begin_src emacs-lisp
+  (defun ak/persp-kill-current ()
+    "Kill the current perspective in the frame"
+    (interactive)
+    (persp-kill (persp-current-name)))
+#+end_src
+
+**** Prettify short persp modestring displayed in the tab-bar.
 #+begin_src emacs-lisp
     (defun ak/persp-format-modestring-short (modestring)
-      (let ((open (nth 0 modestring))
-	    (name (nth 1 modestring))
-	    (close (nth 2 modestring)))
-	(list open
-	      (propertize name 'face 'persp-selected-face)
-	      close)))
+      "Format short `persp-mode-line' for prettier display"
+      (if persp-modestring-short
+	  (let ((open (nth 0 modestring))
+		(name (nth 1 modestring))
+		(close (nth 2 modestring)))
+	    (list open
+		  (propertize name 'face 'persp-selected-face)
+		  close))
+	modestring))
+#+end_src
 
+Advice function to return the dashboard buffer instead of scratch when a new perspective is opened.
+#+begin_src emacs-lisp
     (defun ak/persp-get-dashboard-buffer (&optional name)
+      "Return existing dashboard buffer or create new if none exists"
       (let* ((buffer-name dashboard-buffer-name)
 	     (buffer (get-buffer buffer-name)))
 	(unless buffer
@@ -549,26 +595,39 @@ Workspaces with =perspective=
 	    (when (eq major-mode 'fundamental-mode)
 	      (funcall 'dashboard-mode))
 	    (dashboard-refresh-buffer)))
-	    buffer))
-
-	(use-package perspective
-	  :demand t
-	  :custom
-	  (persp-initial-frame-name "main")
-	  :config
-	  (setq persp-suppress-no-prefix-key-warning t
-		persp-show-modestring t
-		persp-modestring-short t
-		persp-sort 'created)
-	  (advice-add 'persp-mode-line :filter-return #'ak/persp-format-modestring-short)
-	  (advice-add 'persp-get-scratch-buffer :override #'ak/persp-get-dashboard-buffer)
-	  ;; Running `persp-mode' multiple times resets the perspective list...
-	  (unless (equal persp-mode t)
-	    (persp-mode)))
-
-	(ak/leader-key-def
-	  "<tab>" '(:keymap perspective-map :which-key "workspace"))
+	buffer))
 #+end_src
+
+*** Package configuration
+Configure perspective.
+#+begin_src emacs-lisp
+      (use-package perspective
+	:demand t
+	:custom
+	(persp-initial-frame-name "main")
+	:config
+	(setq persp-suppress-no-prefix-key-warning t
+	      persp-show-modestring t
+	      persp-modestring-short t
+	      persp-sort 'created)
+	(advice-add 'persp-mode-line :filter-return #'ak/persp-format-modestring-short)
+	(advice-add 'persp-get-scratch-buffer :override #'ak/persp-get-dashboard-buffer)
+	(add-hook 'persp-switch-hook #'ak/persp-display)
+	;; Running `persp-mode' multiple times resets the perspective list...
+	(unless (equal persp-mode t)
+	  (persp-mode)))
+#+end_src
+
+*** Keybindings
+#+begin_src emacs-lisp
+  (general-def perspective-map
+    "TAB" 'ak/persp-display
+    "d" 'ak/persp-kill-current)
+
+  (ak/leader-key-def
+    "TAB" '(:keymap perspective-map :which-key "workspace"))
+#+end_src
+
 * General
 ** Helpful
 Better help buffers with =helpful=.
@@ -594,10 +653,48 @@ Easy org block templates. Type <s and =TAB= for source block.
 #+end_src
 
 * Development
+** Magit
+Easy git management with =magit=.
+#+begin_src emacs-lisp
+(use-package magit
+  :commands (magit-status magit-get-current-branch)
+  :custom
+  (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
+
+(ak/leader-key-def
+  "g"   '(:ignore t :which-key "git")
+  "gg"  'magit-status
+  "gd"  'magit-diff-unstaged
+  "gc"  'magit-branch-or-checkout
+  "gl"   '(:ignore t :which-key "log")
+  "glc" 'magit-log-current
+  "glf" 'magit-log-buffer-file
+  "gb"  'magit-branch
+  "gP"  'magit-push-current
+  "gp"  'magit-pull-branch
+  "gf"  'magit-fetch
+  "gF"  'magit-fetch-all
+  "gr"  'magit-rebase)
+#+end_src
 ** Projectile
 Working on projects with =projectile=.
 #+begin_src emacs-lisp
+  (use-package projectile
+    :init
+    (when (file-directory-p "~/Projects")
+      (setq projectile-project-search-path '("~/Projects")))
+    :config
+    (projectile-mode))
 
+  (ak/leader-key-def
+    "p" '(:package projectile :keymap projectile-command-map :which-key "projects"))
+#+end_src
+
+*** Perspective integration
+Bridge between perspective and projectile.
+#+begin_src emacs-lisp
+  (use-package persp-projectile
+    :straight (persp-projectile :type git :host github :repo "bbatsov/persp-projectile" :branch "master"))
 #+end_src
 
 * TODOs
