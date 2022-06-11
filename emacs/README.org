@@ -32,21 +32,21 @@ Reduce garbage collection frequency for faster startup and use a hook to measure
 * Package management
 Define local directory.
 #+begin_src emacs-lisp
-(defconst ak/local-dir
+(defconst ak-local-dir
   (concat user-emacs-directory ".local/")
   "Directory local storage")
 #+end_src
 
 Using =straight.el= for package management.
 #+begin_src emacs-lisp
-  (setq straight-base-dir (file-truename ak/local-dir))
+  (setq straight-base-dir (file-truename ak-local-dir))
 #+end_src
 
 Bootstrap straight.
 #+begin_src emacs-lisp
 (defvar bootstrap-version)
 (let ((bootstrap-file
-       (expand-file-name "straight/repos/straight.el/bootstrap.el" ak/local-dir))
+       (expand-file-name "straight/repos/straight.el/bootstrap.el" ak-local-dir))
       (bootstrap-version 5))
   (unless (file-exists-p bootstrap-file)
     (with-current-buffer
@@ -67,19 +67,19 @@ Use straight to install packages by default and in use-package expressions.
 ** Keep .emacs.d clean
 Define cache directories.
 #+begin_src emacs-lisp
-(defconst ak/etc-dir
-  (concat ak/local-dir "etc/"))
+(defconst ak-etc-dir
+  (concat ak-local-dir "etc/"))
 
-(defconst ak/var-dir
-  (concat ak/local-dir "var/"))
+(defconst ak-var-dir
+  (concat ak-local-dir "var/"))
 #+end_src
 
 No littering
 #+begin_src emacs-lisp
   (use-package no-littering
     :init
-    (setq no-littering-etc-directory ak/etc-dir
-	  no-littering-var-directory ak/var-dir))
+    (setq no-littering-etc-directory ak-etc-dir
+	  no-littering-var-directory ak-var-dir))
 #+end_src
 
 ** Update load path
@@ -167,17 +167,17 @@ Use =general.el= for prefixed keybinding.
     :config
     (general-evil-setup t)
 
-    (general-create-definer ak/leader-key-def
+    (general-create-definer ak-leader-key-def
       :states 'normal
       :keymaps 'override
       :prefix "SPC"
       :global-prefix "C-SPC")
 
-    (general-create-definer ak/local-leader-key-def
+    (general-create-definer ak-local-leader-key-def
       :prefix "SPC m")
 
 
-    (general-create-definer ak/ctrl-c-key-def
+    (general-create-definer ak-ctrl-c-key-def
       :prefix "C-c"))
 #+end_src
 
@@ -187,7 +187,7 @@ Setup convenient bindings and other which key prefixes.
   (general-def help-map
     "F" 'describe-face)
 
-  (ak/leader-key-def
+  (ak-leader-key-def
     "." '(find-file :which-key "Find file")
     "," '(consult-buffer :which-key "Switch persp buffer")
     "u" '(universal-argument :which-key "Universal argument")
@@ -207,7 +207,7 @@ Setup convenient bindings and other which key prefixes.
     (load-file (expand-file-name "init.el" user-emacs-directory))
     (message "init.el reloaded"))
 
-  (ak/ctrl-c-key-def
+  (ak-ctrl-c-key-def
    "l" 'reload-init-file)
 #+end_src
 
@@ -258,7 +258,7 @@ Always fullscreen.
 
 Keybinding to toggle fullscreen.
 #+begin_src emacs-lisp
-  (ak/leader-key-def
+  (ak-leader-key-def
     "tF" '(toggle-frame-fullscreen :which-key "Fullscreen"))
 #+end_src
 
@@ -324,7 +324,7 @@ Trying out =modus-themes=.
     :config
     (modus-themes-load-vivendi))
 
-  (ak/leader-key-def
+  (ak-leader-key-def
     "tt" '(modus-themes-toggle :which-key "Modus themes"))
 #+end_src
 
@@ -351,7 +351,7 @@ Remove doom-modeline battery hooks to display battery status in tab bar.
 
 Change faces of modeline evil indicators.
 #+begin_src emacs-lisp
-  (defun ak/doom-modeline-evil-indicator-set-colors-h ()
+  (defun ak-doom-modeline-evil-indicator-set-colors-h ()
     (set-face-attribute 'doom-modeline-evil-emacs-state    nil :background (modus-themes-color 'magenta)         :foreground (modus-themes-color 'bg-main))
     (set-face-attribute 'doom-modeline-evil-normal-state   nil :background (modus-themes-color 'green)           :foreground (modus-themes-color 'bg-main))
     (set-face-attribute 'doom-modeline-evil-insert-state   nil :background (modus-themes-color 'blue)            :foreground (modus-themes-color 'bg-main))
@@ -360,8 +360,8 @@ Change faces of modeline evil indicators.
     (set-face-attribute 'doom-modeline-evil-operator-state nil :background (modus-themes-color 'yellow-intense)  :foreground (modus-themes-color 'bg-main))
     (set-face-attribute 'doom-modeline-evil-replace-state  nil :background (modus-themes-color 'magenta-intense) :foreground (modus-themes-color 'fg-main)))
 
-  (add-hook 'doom-modeline-mode-hook 'ak/doom-modeline-evil-indicator-set-colors-h)
-  (add-hook 'modus-themes-after-load-theme-hook 'ak/doom-modeline-evil-indicator-set-colors-h)
+  (add-hook 'doom-modeline-mode-hook 'ak-doom-modeline-evil-indicator-set-colors-h)
+  (add-hook 'modus-themes-after-load-theme-hook 'ak-doom-modeline-evil-indicator-set-colors-h)
 #+end_src
 
 *** Hide modeline
@@ -369,7 +369,7 @@ Change faces of modeline evil indicators.
   (use-package hide-mode-line
     :hook ((vterm-mode eshell-mode) . hide-mode-line-mode)
     :config
-    (ak/leader-key-def
+    (ak-leader-key-def
       "tm" '(hide-mode-line-mode :which-key "Modeline")))
 #+end_src
 
@@ -383,16 +383,16 @@ Use the tab bar as a global modeline.
 
 Properly format global mode string as it is used by the tab bar.
 #+begin_src emacs-lisp
-  (defun ak/format-global-mode-string ()
+  (defun ak-format-global-mode-string ()
     "Format `global-mode-string' to display perspective, time and battery"
     (setq global-mode-string '("" (:eval (persp-mode-line)) " | " display-time-string "| " fancy-battery-mode-line " |")))
 
-  (add-hook 'after-init-hook #'ak/format-global-mode-string)
+  (add-hook 'after-init-hook #'ak-format-global-mode-string)
 #+end_src
 
 *** Toggle tab bar
 #+begin_src emacs-lisp
-    (ak/leader-key-def
+    (ak-leader-key-def
       "tb" '(tab-bar-mode :which-key "Tab bar"))
 #+end_src
 
@@ -438,7 +438,7 @@ Configure display line numbers.
 *** Toggle line numbers
 Function to toggle display line numbers.
 #+begin_src emacs-lisp
-  (defun ak/toggle-line-numbers ()
+  (defun ak-toggle-line-numbers ()
     "Toggle line numbers.
 
   Cycles through regular, relative and no line numbers. The order depends on what
@@ -447,14 +447,14 @@ Function to toggle display line numbers.
 
   See `display-line-numbers' for what these values mean."
     (interactive)
-    (defvar ak/line-number-style display-line-numbers-type)
+    (defvar ak-line-number-style display-line-numbers-type)
     (let* ((styles `(t ,(if visual-line-mode 'visual 'relative) nil))
 	   (order (cons display-line-numbers-type (remq display-line-numbers-type styles)))
-	   (queue (memq ak/line-number-style order))
+	   (queue (memq ak-line-number-style order))
 	   (next (if (= (length queue) 1)
 		     (car order)
 		   (car (cdr queue)))))
-      (setq ak/line-number-style next)
+      (setq ak-line-number-style next)
       (setq display-line-numbers next)
       (message "Switched to %s line numbers"
 	       (pcase next
@@ -462,8 +462,8 @@ Function to toggle display line numbers.
 		 (`nil "disabled")
 		 (_ (symbol-name next))))))
 
-  (ak/leader-key-def
-    "tl" '(ak/toggle-line-numbers :which-key "Line numbers"))
+  (ak-leader-key-def
+    "tl" '(ak-toggle-line-numbers :which-key "Line numbers"))
 #+end_src
 
 * Completion
@@ -591,7 +591,7 @@ Window history with =winner=.
 ** Keybindings
 Bind evil window keys to global prefix.
 #+begin_src emacs-lisp
-  (ak/leader-key-def
+  (ak-leader-key-def
     "w" '(:package evil :keymap evil-window-map :which-key "window"))
 
   (general-define-key
@@ -642,7 +642,7 @@ Workspaces with =perspective=.
 
 *** Display perspectives.
 #+begin_src emacs-lisp
-  (defun ak/persp-display ()
+  (defun ak-persp-display ()
     "Display numbered perspectives tabs at the bottom of the screen"
     (interactive)
     (let* ((persps (persp-names))
@@ -659,12 +659,12 @@ Workspaces with =perspective=.
 		      " ")))
       (message "%s" tab-line)))
 
-  (add-hook 'persp-switch-hook #'ak/persp-display)
+  (add-hook 'persp-switch-hook #'ak-persp-display)
 #+end_src
 
 *** Kill the current perspective.
 #+begin_src emacs-lisp
-  (defun ak/persp-kill-current ()
+  (defun ak-persp-kill-current ()
     "Kill the current perspective in the frame"
     (interactive)
     (persp-kill (persp-current-name)))
@@ -672,7 +672,7 @@ Workspaces with =perspective=.
 
 *** Prettify short persp modestring displayed in the tab-bar.
 #+begin_src emacs-lisp
-  (defun ak/persp-format-modestring-short (modestring)
+  (defun ak-persp-format-modestring-short (modestring)
     "Format short `persp-mode-line' for prettier display"
     (if persp-modestring-short
 	(let ((open (nth 0 modestring))
@@ -683,13 +683,13 @@ Workspaces with =perspective=.
 		close))
       modestring))
 
-  (advice-add 'persp-mode-line :filter-return #'ak/persp-format-modestring-short)
+  (advice-add 'persp-mode-line :filter-return #'ak-persp-format-modestring-short)
 #+end_src
 
 *** Dashboard in new perspectives
 Advice function to return the dashboard buffer instead of scratch when a new perspective is opened.
 #+begin_src emacs-lisp
-  (defun ak/persp-get-dashboard-buffer (&optional name)
+  (defun ak-persp-get-dashboard-buffer (&optional name)
     "Return existing dashboard buffer or create new if none exists"
     (let* ((buffer-name dashboard-buffer-name)
 	   (buffer (get-buffer buffer-name)))
@@ -701,16 +701,16 @@ Advice function to return the dashboard buffer instead of scratch when a new per
 	  (dashboard-refresh-buffer)))
       buffer))
 
-  (advice-add 'persp-get-scratch-buffer :override #'ak/persp-get-dashboard-buffer)
+  (advice-add 'persp-get-scratch-buffer :override #'ak-persp-get-dashboard-buffer)
 #+end_src
 
 *** Keybindings
 #+begin_src emacs-lisp
   (general-def perspective-map
-    "TAB" 'ak/persp-display
-    "d" 'ak/persp-kill-current)
+    "TAB" 'ak-persp-display
+    "d" 'ak-persp-kill-current)
 
-  (ak/leader-key-def
+  (ak-leader-key-def
     "TAB" '(:keymap perspective-map :which-key "workspace"))
 #+end_src
 
@@ -735,11 +735,11 @@ Require custom scratch buffer utility.
 
 ** Keybindings
 #+begin_src emacs-lisp
-  (ak/leader-key-def
+  (ak-leader-key-def
     "b" '(:ignore t :which-key "buffer")
     "bd" '(kill-current-buffer :which-key "Kill buffer")
-    "bx" '(ak/open-scratch-buffer :which-key "Open scratch buffer")
-    "bX" '(ak/switch-to-scratch-buffer :which-key "Switch to scratch buffer"))
+    "bx" '(ak-open-scratch-buffer :which-key "Open scratch buffer")
+    "bX" '(ak-switch-to-scratch-buffer :which-key "Switch to scratch buffer"))
 #+end_src
 
 * Development
@@ -751,7 +751,7 @@ Easy git management with =magit=.
     :custom
     (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
 
-  (ak/leader-key-def
+  (ak-leader-key-def
     "gg"  'magit-status
     "gd"  'magit-diff-unstaged
     "gc"  'magit-branch-or-checkout
@@ -788,13 +788,13 @@ Prettier gutter with =git-gutter-fringe=.
     (define-fringe-bitmap 'git-gutter-fr:modified [224] nil nil '(center repeated))
     (define-fringe-bitmap 'git-gutter-fr:deleted [128 192 224 240] nil nil 'bottom))
 
-  (defun ak/git-gutter-fringe-set-colors-h ()
+  (defun ak-git-gutter-fringe-set-colors-h ()
     (set-face-foreground 'git-gutter-fr:modified (modus-themes-color 'yellow-intense))
     (set-face-foreground 'git-gutter-fr:added    (modus-themes-color 'green-intense))
     (set-face-attribute 'git-gutter-fr:deleted nil :foreground (modus-themes-color 'red-intense-bg) :background (modus-themes-color 'red-intense))
 
-    (add-hook 'git-gutter-mode-on-hook 'ak/git-gutter-fringe-set-colors-h)
-    (add-hook 'modus-themes-after-load-theme-hook 'ak/git-gutter-fringe-set-colors-h))
+    (add-hook 'git-gutter-mode-on-hook 'ak-git-gutter-fringe-set-colors-h)
+    (add-hook 'modus-themes-after-load-theme-hook 'ak-git-gutter-fringe-set-colors-h))
 
 #+end_src
 
@@ -806,6 +806,8 @@ Prettier gutter with =git-gutter-fringe=.
     (text-mode . diff-hl-mode)
     (dired-mode . diff-hl-dired-mode)
     :config
+    (add-hook 'magit-pre-refresh-hook 'diff-hl-magit-pre-refresh)
+    (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
     (if (fboundp 'fringe-mode) (fringe-mode '4))
     (setq diff-hl-draw-borders nil)
     (setq diff-hl-side 'left))
@@ -821,7 +823,7 @@ Working on projects with =projectile=.
 	(setq projectile-project-search-path '("~/Projects")
 	      projectile-track-known-projects-automatically nil))
       :config
-      (defun ak/project-root (&optional dir)
+      (defun ak-project-root (&optional dir)
 	"Return the project root of DIR (defaults to `default-directory').
 	    Returns nil if not in a project."
 	(let ((projectile-project-root
@@ -829,10 +831,10 @@ Working on projects with =projectile=.
 	      projectile-require-project-root)
 	  (projectile-project-root dir)))
 
-      (defun ak/project-name (&optional dir)
+      (defun ak-project-name (&optional dir)
 	"Return the name of the current project.
     Returns '-' if not in a valid project."
-	(if-let (project-root (or (ak/project-root dir)
+	(if-let (project-root (or (ak-project-root dir)
 				  (if dir (expand-file-name dir))))
 	    (funcall projectile-project-name-function project-root)
 	  "-"))
@@ -863,12 +865,12 @@ Bridge between perspective and projectile.
    [remap projectile-find-file] 'consult-projectile-find-file
    [remap projectile-switch-to-buffer] 'consult-projectile-switch-to-buffer)
 
-  (ak/leader-key-def
+  (ak-leader-key-def
     "p" '(:package projectile :keymap projectile-command-map :which-key "projects")
     "SPC" '(consult-projectile-find-file :which-key "Find file in project")
     "pa" '(projectile-add-known-project :which-key "Add to known projects")
-    "px" '(ak/open-project-scratch-buffer :which-key "Open project scratch buffer")
-    "pX" '(ak/switch-to-project-scratch-buffer :which-key "Switch to project scratch buffer"))
+    "px" '(ak-open-project-scratch-buffer :which-key "Open project scratch buffer")
+    "pX" '(ak-switch-to-project-scratch-buffer :which-key "Switch to project scratch buffer"))
 #+end_src
 
 ** Prog mode
@@ -885,6 +887,7 @@ Bridge between perspective and projectile.
     :hook (emacs-lisp-mode . elisp-def-mode)
     :config
     (general-define-key
+     :states 'normal
      :keymaps 'emacs-lisp-mode-map
      "gd" 'elisp-def)
     (general-define-key
@@ -920,7 +923,7 @@ Easy org block templates. Type <s and =TAB= for source block.
 
 ** Consult org headings
 #+begin_src emacs-lisp
-  (ak/local-leader-key-def
+  (ak-local-leader-key-def
    :states 'normal
    :keymaps 'org-mode-map
    "h" 'consult-org-heading)
@@ -990,7 +993,7 @@ Jumping around with =avy=.
 
 *** Embark integration
 #+begin_src emacs-lisp
-  (defun ak/avy-action-embark (pt)
+  (defun ak-avy-action-embark (pt)
     "Avy action to call embark-act"
     (unwind-protect
 	(save-excursion
@@ -999,7 +1002,7 @@ Jumping around with =avy=.
       (select-window
        (cdr (ring-ref avy-ring 0))))
     t)
-  (setf (alist-get ?. avy-dispatch-alist) 'ak/avy-action-embark))
+  (setf (alist-get ?. avy-dispatch-alist) 'ak-avy-action-embark))
 #+end_src
 
 ** Vterm
@@ -1007,7 +1010,7 @@ Better terminal emulation with =vterm=.
 #+begin_src emacs-lisp
   (use-package vterm
     :after evil-collection
-    :commands (vterm ak/vterm-toggle ak/vterm-here)
+    :commands (vterm ak-vterm-toggle ak-vterm-here)
     :config
     (setq vterm-max-scrollback 10000)
     (advice-add 'evil-collection-vterm-insert :before #'vterm-reset-cursor-point)
@@ -1015,13 +1018,13 @@ Better terminal emulation with =vterm=.
 
 *** Perspective aware vterm popups
 #+begin_src emacs-lisp
-    (defun ak/vterm-configure-project-root-and-display (arg display-fn)
+    (defun ak-vterm-configure-project-root-and-display (arg display-fn)
       "Sets the environment variable PROOT and displays a terminal using `display-fn`.
     If prefix ARG is non-nil, cd into `default-directory' instead of project root.
     Returns the vterm buffer."
       (unless (fboundp 'module-load)
 	(user-error "Your build of Emacs lacks dynamic modules support and cannot load vterm"))
-      (let* ((project-root (or (ak/project-root) default-directory))
+      (let* ((project-root (or (ak-project-root) default-directory))
 	     (default-directory
 	       (if arg
 		   default-directory
@@ -1029,12 +1032,12 @@ Better terminal emulation with =vterm=.
 	(setenv "PROOT" project-root)
 	(funcall display-fn)))
 
-      (defun ak/vterm-toggle (arg)
+      (defun ak-vterm-toggle (arg)
 	"Toggles a terminal popup window at project root.
       If prefix ARG is non-nil, recreate vterm buffer in the default directory.
       Returns the vterm buffer."
 	(interactive "P")
-	(ak/vterm-configure-project-root-and-display
+	(ak-vterm-configure-project-root-and-display
 	 arg
 	 (lambda()
 	   (let ((buffer-name
@@ -1064,12 +1067,12 @@ Better terminal emulation with =vterm=.
 *** Vterm anywhere
 Open vterm in project root or default directory.
 #+begin_src emacs-lisp
-  (defun ak/vterm-here (arg)
+  (defun ak-vterm-here (arg)
     "Open a terminal buffer in the current window at project root.
   If prefix ARG is non-nil, cd into `default-directory' instead of project root.
   Returns the vterm buffer."
     (interactive "P")
-    (ak/vterm-configure-project-root-and-display
+    (ak-vterm-configure-project-root-and-display
      arg
      (lambda()
        (let (display-buffer-alist)
@@ -1078,9 +1081,9 @@ Open vterm in project root or default directory.
 
 *** Keybindings
 #+begin_src emacs-lisp
-  (ak/leader-key-def
-    "ot" 'ak/vterm-toggle
-    "oT" 'ak/vterm-here)
+  (ak-leader-key-def
+    "ot" 'ak-vterm-toggle
+    "oT" 'ak-vterm-here)
 #+end_src
 
 * TODOs
