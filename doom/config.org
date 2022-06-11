@@ -67,7 +67,7 @@ A literate init.el. This provides modular configurability for Doom. Lets you ena
 company           ; the ultimate code completion backend
 ;;helm              ; the *other* search engine for love and life
 ;;ido               ; the other *other* search engine...
-(ivy +prescient +icons)               ; a search engine for love and life
+(ivy +icons)               ; a search engine for love and life
 #+end_src
 
 *** UI
@@ -181,7 +181,7 @@ pdf               ; pdf enhancements
 ;;agda              ; types of types of types of types...
 (cc +lsp)                ; C/C++/Obj-C madness
 ;;clojure           ; java with a lisp
-;;common-lisp       ; if you've seen one lisp, you've seen them all
+common-lisp       ; if you've seen one lisp, you've seen them all
 ;;coq               ; proofs-as-programs
 ;;crystal           ; ruby at the speed of c
 ;;csharp            ; unity, .NET, and mono shenanigans
@@ -214,8 +214,7 @@ markdown          ; writing docs for people to ignore
 ;;nim               ; python + lisp at the speed of c
 ;;nix               ; I hereby declare "nix geht mehr!"
 ;;ocaml             ; an objective camel
-(org +roam
-     +noter)               ; organize your plain life in plain text
+(org +noter)               ; organize your plain life in plain text
 ;;php               ; perl's insecure younger brother
 ;;plantuml          ; diagrams for confusing people more
 ;;purescript        ; javascript, but functional
@@ -623,7 +622,7 @@ Configure nov-mode. Open epubs with nov, set font and column width.
   (add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode))
 
   (defun ak/nov-font-setup ()
-    (face-remap-add-relative 'variable-pitch :family "Bookerley"
+    (face-remap-add-relative 'variable-pitch :family "Bookerly"
                              :height 1.0))
 
   (add-hook 'nov-mode-hook 'ak/nov-font-setup)
@@ -883,21 +882,27 @@ Defaults for org noter
 ** LaTeX and Beamer export
 Setup latex and beamer export
 #+begin_src emacs-lisp
-(add-hook! 'org-mode-hook 'org-beamer-mode)
+(after! org
+  (add-hook! 'org-mode-hook 'org-beamer-mode)
+  (eval-after-load 'ox '(require 'ox-koma-letter))
+  (use-package! ox-latex
+    :config
+    (setq org-latex-listings t)
+    (add-to-list 'org-latex-packages-alist '("" "listings"))
+    (add-to-list 'org-latex-packages-alist '("" "color"))
 
-(require 'ox-latex)
-(setq org-latex-listings t)
-(add-to-list 'org-latex-packages-alist '("" "listings"))
-(add-to-list 'org-latex-packages-alist '("" "color"))
+    (setq org-latex-pdf-process
+          '("pdflatex -interaction nonstopmode -output-directory %o %f"
+            "bibtex %b"
+            "pdflatex -interaction nonstopmode -output-directory %o %f"
+            "pdflatex -interaction nonstopmode -output-directory %o %f")))
 
-(setq org-latex-pdf-process
-      '("pdflatex -interaction nonstopmode -output-directory %o %f"
-        "bibtex %b"
-        "pdflatex -interaction nonstopmode -output-directory %o %f"
-        "pdflatex -interaction nonstopmode -output-directory %o %f"))
+  (use-package! ox-extra
+    :config
+    (ox-extras-activate '(latex-header-blocks ignore-headlines))))
 #+end_src
 
-** Org-tree-slide
+** Org tree slide
 For presenting org-mode files. Using my own config instead of (org +present) because it seemed too finicky, although most of it is same as that of doom's.
 #+begin_src emacs-lisp :tangle "packages.el" :comments no
 (package! org-tree-slide)
@@ -1158,7 +1163,7 @@ Browse shell history in vterm
 A completion interface for zsh in vterm with ivy.
 #+begin_src emacs-lisp
 (after! (vterm ivy)
-  (defcustom ak/vterm-ivy-zsh-history-file "~/.zsh_history"
+  (defcustom ak/vterm-ivy-zsh-history-file "~/.config/zsh/.zsh_history"
     "File containing zsh history."
     :type 'string
     :group 'vterm)

@@ -82,6 +82,11 @@ No littering
 	  no-littering-var-directory ak/var-dir))
 #+end_src
 
+** Update load path
+#+begin_src emacs-lisp
+(add-to-list 'load-path (concat user-emacs-directory "lisp/"))
+#+end_src
+
 * Keybindings
 Core configurations for keybindings.
 ** Undo tree
@@ -158,32 +163,39 @@ Keybinding helper for quick reference with =which-key=.
 ** Prefix keybinding
 Use =general.el= for prefixed keybinding.
 #+begin_src emacs-lisp
-(use-package general
-  :config
-  (general-evil-setup t)
+  (use-package general
+    :config
+    (general-evil-setup t)
 
-  (general-create-definer ak/leader-key-def
-    :keymaps '(normal insert visual emacs)
-    :prefix "SPC"
-    :global-prefix "C-SPC")
+    (general-create-definer ak/leader-key-def
+      :states 'normal
+      :keymaps 'override
+      :prefix "SPC"
+      :global-prefix "C-SPC")
 
-  (general-create-definer ak/ctrl-c-key-def
-    :prefix "C-c"))
+    (general-create-definer ak/local-leader-key-def
+      :prefix "SPC m")
+
+
+    (general-create-definer ak/ctrl-c-key-def
+      :prefix "C-c"))
 #+end_src
 
 ** Convenient bindings
 Setup convenient bindings and other which key prefixes.
 #+begin_src emacs-lisp
+  (general-def help-map
+    "F" 'describe-face)
+
   (ak/leader-key-def
     "." '(find-file :which-key "Find file")
     "," '(consult-buffer :which-key "Switch persp buffer")
     "u" '(universal-argument :which-key "Universal argument")
     "g" '(:ignore t :which-key "git")
     "h" '(:keymap help-map :which-key "help")
+    "m" '(:ignore t :which-key "local leader")
+    "o" '(:ignore t :which-key "open")
     "t" '(:ignore t :which-key "toggle"))
-
-  (general-def help-map
-    "F" 'describe-face)
 #+end_src
 
 *** Reload init.el
@@ -311,6 +323,9 @@ Trying out =modus-themes=.
     (modus-themes-load-themes)
     :config
     (modus-themes-load-vivendi))
+
+  (ak/leader-key-def
+    "tt" '(modus-themes-toggle :which-key "Modus themes"))
 #+end_src
 
 ** Modeline
@@ -331,23 +346,28 @@ Setup and configure =doom-modeline=.
 Remove doom-modeline battery hooks to display battery status in tab bar.
 #+begin_src emacs-lisp
     (remove-hook 'display-battery-mode-hook 'doom-modeline-override-battery-modeline)
-    (remove-hook 'doom-modeline-mode-hook 'doom-modeline-override-battery-modeline)
+    (remove-hook 'doom-modeline-mode-hook 'doom-modeline-override-battery-modeline))
 #+end_src
 
 Change faces of modeline evil indicators.
 #+begin_src emacs-lisp
-  (set-face-attribute 'doom-modeline-evil-emacs-state    nil :background (modus-themes-color 'magenta-active)  :foreground "#000000")
-  (set-face-attribute 'doom-modeline-evil-normal-state   nil :background (modus-themes-color 'green-active)    :foreground "#000000")
-  (set-face-attribute 'doom-modeline-evil-insert-state   nil :background (modus-themes-color 'blue)            :foreground "#ffffff")
-  (set-face-attribute 'doom-modeline-evil-visual-state   nil :background (modus-themes-color 'orange-intense)  :foreground "#000000")
-  (set-face-attribute 'doom-modeline-evil-motion-state   nil :background (modus-themes-color 'red-intense)     :foreground "#ffffff")
-  (set-face-attribute 'doom-modeline-evil-operator-state nil :background (modus-themes-color 'yellow-intense)  :foreground "#000000")
-  (set-face-attribute 'doom-modeline-evil-replace-state  nil :background (modus-themes-color 'magenta-intense) :foreground "#ffffff"))
+  (defun ak/doom-modeline-evil-indicator-set-colors-h ()
+    (set-face-attribute 'doom-modeline-evil-emacs-state    nil :background (modus-themes-color 'magenta)         :foreground (modus-themes-color 'bg-main))
+    (set-face-attribute 'doom-modeline-evil-normal-state   nil :background (modus-themes-color 'green)           :foreground (modus-themes-color 'bg-main))
+    (set-face-attribute 'doom-modeline-evil-insert-state   nil :background (modus-themes-color 'blue)            :foreground (modus-themes-color 'bg-main))
+    (set-face-attribute 'doom-modeline-evil-visual-state   nil :background (modus-themes-color 'orange-intense)  :foreground (modus-themes-color 'bg-main))
+    (set-face-attribute 'doom-modeline-evil-motion-state   nil :background (modus-themes-color 'red-intense)     :foreground (modus-themes-color 'fg-main))
+    (set-face-attribute 'doom-modeline-evil-operator-state nil :background (modus-themes-color 'yellow-intense)  :foreground (modus-themes-color 'bg-main))
+    (set-face-attribute 'doom-modeline-evil-replace-state  nil :background (modus-themes-color 'magenta-intense) :foreground (modus-themes-color 'fg-main)))
+
+  (add-hook 'doom-modeline-mode-hook 'ak/doom-modeline-evil-indicator-set-colors-h)
+  (add-hook 'modus-themes-after-load-theme-hook 'ak/doom-modeline-evil-indicator-set-colors-h)
 #+end_src
 
 *** Hide modeline
 #+begin_src emacs-lisp
   (use-package hide-mode-line
+    :hook ((vterm-mode eshell-mode) . hide-mode-line-mode)
     :config
     (ak/leader-key-def
       "tm" '(hide-mode-line-mode :which-key "Modeline")))
@@ -368,6 +388,12 @@ Properly format global mode string as it is used by the tab bar.
     (setq global-mode-string '("" (:eval (persp-mode-line)) " | " display-time-string "| " fancy-battery-mode-line " |")))
 
   (add-hook 'after-init-hook #'ak/format-global-mode-string)
+#+end_src
+
+*** Toggle tab bar
+#+begin_src emacs-lisp
+    (ak/leader-key-def
+      "tb" '(tab-bar-mode :which-key "Tab bar"))
 #+end_src
 
 ** Better scrolling
@@ -455,6 +481,7 @@ A streamlined minimal and performant completion with =vertico.el=
     :custom
     (vertico-cycle t)
     :init
+    (setq vertico-resize nil)
     (vertico-mode))
 #+end_src
 
@@ -490,11 +517,12 @@ Persist minibuffer history over Emacs restarts with =savehist=.
 ** Consult
 =consult.el= for practical completing-read commands.
 #+begin_src emacs-lisp
-  (use-package consult
-    :after (perspective)
-    :config
-    (consult-customize consult--source-buffer :hidden t :default nil)
-    (add-to-list 'consult-buffer-sources persp-consult-source))
+    (use-package consult
+      :after (perspective)
+      :config
+      (consult-customize consult--source-buffer :hidden t :default nil)
+      (add-to-list 'consult-buffer-sources persp-consult-source)
+      (add-to-list 'consult-buffer-filter "^\\*.*\\*$"))
 #+end_src
 
 ** Embark
@@ -587,6 +615,8 @@ Taming popups with =popper.el=
 	  '("\\*Messages\\*"
 	    "Output\\*$"
 	    "\\*Async Shell Command\\*"
+	    "^\\*vterm-popup.*\\*$"
+	    "^\\*scratch.*\\*$"
 	    help-mode
 	    helpful-mode
 	    compilation-mode)
@@ -597,11 +627,20 @@ Taming popups with =popper.el=
 
 * Buffers and workspaces
 ** Perspective
-Workspaces with =perspective=
-*** Functions
-A few convinence functions for using persp-mode.
+Workspaces with =perspective=.
+#+begin_src emacs-lisp
+      (use-package perspective
+	:demand t
+	:custom
+	(persp-initial-frame-name "main")
+	:config
+	(setq persp-suppress-no-prefix-key-warning t
+	      persp-show-modestring t
+	      persp-modestring-short t
+	      persp-sort 'created)
+#+end_src
 
-**** Display perspectives.
+*** Display perspectives.
 #+begin_src emacs-lisp
   (defun ak/persp-display ()
     "Display numbered perspectives tabs at the bottom of the screen"
@@ -619,9 +658,11 @@ A few convinence functions for using persp-mode.
 						   'default)))
 		      " ")))
       (message "%s" tab-line)))
+
+  (add-hook 'persp-switch-hook #'ak/persp-display)
 #+end_src
 
-**** Kill the current perspective.
+*** Kill the current perspective.
 #+begin_src emacs-lisp
   (defun ak/persp-kill-current ()
     "Kill the current perspective in the frame"
@@ -629,53 +670,38 @@ A few convinence functions for using persp-mode.
     (persp-kill (persp-current-name)))
 #+end_src
 
-**** Prettify short persp modestring displayed in the tab-bar.
+*** Prettify short persp modestring displayed in the tab-bar.
 #+begin_src emacs-lisp
-    (defun ak/persp-format-modestring-short (modestring)
-      "Format short `persp-mode-line' for prettier display"
-      (if persp-modestring-short
-	  (let ((open (nth 0 modestring))
-		(name (nth 1 modestring))
-		(close (nth 2 modestring)))
-	    (list open
-		  (propertize name 'face 'persp-selected-face)
-		  close))
-	modestring))
+  (defun ak/persp-format-modestring-short (modestring)
+    "Format short `persp-mode-line' for prettier display"
+    (if persp-modestring-short
+	(let ((open (nth 0 modestring))
+	      (name (nth 1 modestring))
+	      (close (nth 2 modestring)))
+	  (list open
+		(propertize name 'face 'persp-selected-face)
+		close))
+      modestring))
+
+  (advice-add 'persp-mode-line :filter-return #'ak/persp-format-modestring-short)
 #+end_src
 
+*** Dashboard in new perspectives
 Advice function to return the dashboard buffer instead of scratch when a new perspective is opened.
 #+begin_src emacs-lisp
-    (defun ak/persp-get-dashboard-buffer (&optional name)
-      "Return existing dashboard buffer or create new if none exists"
-      (let* ((buffer-name dashboard-buffer-name)
-	     (buffer (get-buffer buffer-name)))
-	(unless buffer
-	  (setq buffer (get-buffer-create buffer-name))
-	  (with-current-buffer buffer
-	    (when (eq major-mode 'fundamental-mode)
-	      (funcall 'dashboard-mode))
-	    (dashboard-refresh-buffer)))
-	buffer))
-#+end_src
+  (defun ak/persp-get-dashboard-buffer (&optional name)
+    "Return existing dashboard buffer or create new if none exists"
+    (let* ((buffer-name dashboard-buffer-name)
+	   (buffer (get-buffer buffer-name)))
+      (unless buffer
+	(setq buffer (get-buffer-create buffer-name))
+	(with-current-buffer buffer
+	  (when (eq major-mode 'fundamental-mode)
+	    (funcall 'dashboard-mode))
+	  (dashboard-refresh-buffer)))
+      buffer))
 
-*** Package configuration
-Configure perspective.
-#+begin_src emacs-lisp
-      (use-package perspective
-	:demand t
-	:custom
-	(persp-initial-frame-name "main")
-	:config
-	(setq persp-suppress-no-prefix-key-warning t
-	      persp-show-modestring t
-	      persp-modestring-short t
-	      persp-sort 'created)
-	(advice-add 'persp-mode-line :filter-return #'ak/persp-format-modestring-short)
-	(advice-add 'persp-get-scratch-buffer :override #'ak/persp-get-dashboard-buffer)
-	(add-hook 'persp-switch-hook #'ak/persp-display)
-	;; Running `persp-mode' multiple times resets the perspective list...
-	(unless (equal persp-mode t)
-	  (persp-mode)))
+  (advice-add 'persp-get-scratch-buffer :override #'ak/persp-get-dashboard-buffer)
 #+end_src
 
 *** Keybindings
@@ -688,28 +714,32 @@ Configure perspective.
     "TAB" '(:keymap perspective-map :which-key "workspace"))
 #+end_src
 
-* General
-** Helpful
-Better help buffers with =helpful=.
+*** Turn on perspective
 #+begin_src emacs-lisp
-  (use-package helpful
-    :hook (helpful-mode . visual-line-mode)
-    :init
-    (global-set-key [remap describe-function] #'helpful-callable)
-    (global-set-key [remap describe-command]  #'helpful-command)
-    (global-set-key [remap describe-variable] #'helpful-variable)
-    (global-set-key [remap describe-key]      #'helpful-key)
-    (global-set-key [remap describe-symbol]   #'helpful-symbol))
+	;; Running `persp-mode' multiple times resets the perspective list...
+	(unless (equal persp-mode t)
+	  (persp-mode)))
 #+end_src
 
-* Org Mode
-** Block templates
-Easy org block templates. Type <s and =TAB= for source block.
+** Save place
+Turn on =save-place-mode=.
 #+begin_src emacs-lisp
-  (require 'org-tempo)
+  (save-place-mode 1) 
+#+end_src
 
-  (add-to-list 'org-structure-template-alist '("sh" . "src sh"))
-  (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+** Scratch buffer
+Require custom scratch buffer utility.
+#+begin_src emacs-lisp
+(require 'ak-scratch)
+#+end_src
+
+** Keybindings
+#+begin_src emacs-lisp
+  (ak/leader-key-def
+    "b" '(:ignore t :which-key "buffer")
+    "bd" '(kill-current-buffer :which-key "Kill buffer")
+    "bx" '(ak/open-scratch-buffer :which-key "Open scratch buffer")
+    "bX" '(ak/switch-to-scratch-buffer :which-key "Switch to scratch buffer"))
 #+end_src
 
 * Development
@@ -739,44 +769,75 @@ Easy git management with =magit=.
 ** Git Gutter
 View file changes with the =git-gutter=.
 #+begin_src emacs-lisp
-    (use-package git-gutter
-      :hook ((text-mode . git-gutter-mode)
-	     (prog-mode . git-gutter-mode))
-      )
+  (use-package git-gutter
+    :disabled
+    :hook ((text-mode . git-gutter-mode)
+	   (prog-mode . git-gutter-mode))
+    )
 #+end_src
 
 Prettier gutter with =git-gutter-fringe=.
 #+begin_src emacs-lisp
   (use-package git-gutter-fringe
-    :defer t
+    :disabled
     :config
-    (set-face-foreground 'git-gutter-fr:modified (modus-themes-color 'yellow-faint))
-    (set-face-foreground 'git-gutter-fr:added    (modus-themes-color 'green-faint))
-    (set-face-foreground 'git-gutter-fr:deleted  (modus-themes-color 'red-faint))
-
     (if (fboundp 'fringe-mode) (fringe-mode '4))
     ;; places the git gutter outside the margins.
     (setq-default fringes-outside-margins t)
-    (define-fringe-bitmap 'git-gutter-fr:added [224]
-      nil nil '(center repeated))
-    (define-fringe-bitmap 'git-gutter-fr:modified [224]
-      nil nil '(center repeated))
-    (define-fringe-bitmap 'git-gutter-fr:deleted [128 192 224 240]
-      nil nil 'bottom))
+    (define-fringe-bitmap 'git-gutter-fr:added [224] nil nil '(center repeated))
+    (define-fringe-bitmap 'git-gutter-fr:modified [224] nil nil '(center repeated))
+    (define-fringe-bitmap 'git-gutter-fr:deleted [128 192 224 240] nil nil 'bottom))
+
+  (defun ak/git-gutter-fringe-set-colors-h ()
+    (set-face-foreground 'git-gutter-fr:modified (modus-themes-color 'yellow-intense))
+    (set-face-foreground 'git-gutter-fr:added    (modus-themes-color 'green-intense))
+    (set-face-attribute 'git-gutter-fr:deleted nil :foreground (modus-themes-color 'red-intense-bg) :background (modus-themes-color 'red-intense))
+
+    (add-hook 'git-gutter-mode-on-hook 'ak/git-gutter-fringe-set-colors-h)
+    (add-hook 'modus-themes-after-load-theme-hook 'ak/git-gutter-fringe-set-colors-h))
+
 #+end_src
 
-** Projectile
+** Diff-hl
+#+begin_src emacs-lisp
+  (use-package diff-hl
+    :hook
+    (prog-mode . diff-hl-mode)
+    (text-mode . diff-hl-mode)
+    (dired-mode . diff-hl-dired-mode)
+    :config
+    (if (fboundp 'fringe-mode) (fringe-mode '4))
+    (setq diff-hl-draw-borders nil)
+    (setq diff-hl-side 'left))
+#+end_src
+
+** Projects
+*** Projectile
 Working on projects with =projectile=.
 #+begin_src emacs-lisp
-  (use-package projectile
-    :init
-    (when (file-directory-p "~/Projects")
-      (setq projectile-project-search-path '("~/Projects")))
-    :config
-    (projectile-mode))
+    (use-package projectile
+      :init
+      (when (file-directory-p "~/Projects")
+	(setq projectile-project-search-path '("~/Projects")
+	      projectile-track-known-projects-automatically nil))
+      :config
+      (defun ak/project-root (&optional dir)
+	"Return the project root of DIR (defaults to `default-directory').
+	    Returns nil if not in a project."
+	(let ((projectile-project-root
+	       (unless dir (bound-and-true-p projectile-project-root)))
+	      projectile-require-project-root)
+	  (projectile-project-root dir)))
 
-  (ak/leader-key-def
-    "p" '(:package projectile :keymap projectile-command-map :which-key "projects"))
+      (defun ak/project-name (&optional dir)
+	"Return the name of the current project.
+    Returns '-' if not in a valid project."
+	(if-let (project-root (or (ak/project-root dir)
+				  (if dir (expand-file-name dir))))
+	    (funcall projectile-project-name-function project-root)
+	  "-"))
+      (projectile-mode))
+
 #+end_src
 
 *** Perspective integration
@@ -784,6 +845,242 @@ Bridge between perspective and projectile.
 #+begin_src emacs-lisp
   (use-package persp-projectile
     :straight (persp-projectile :type git :host github :repo "bbatsov/persp-projectile" :branch "master"))
+#+end_src
+
+*** Consult projectile
+#+begin_src emacs-lisp
+    (use-package consult-projectile
+      :straight (consult-projectile :type git :host gitlab :repo "OlMon/consult-projectile" :branch "master")
+      :config
+      (setq consult-projectile-source-projectile-project-action #'projectile-persp-switch-project))
+#+end_src
+
+*** Keybindings
+#+begin_src emacs-lisp
+  (general-define-key
+   :keymaps 'projectile-mode-map
+   [remap projectile-switch-project] 'consult-projectile-switch-project
+   [remap projectile-find-file] 'consult-projectile-find-file
+   [remap projectile-switch-to-buffer] 'consult-projectile-switch-to-buffer)
+
+  (ak/leader-key-def
+    "p" '(:package projectile :keymap projectile-command-map :which-key "projects")
+    "SPC" '(consult-projectile-find-file :which-key "Find file in project")
+    "pa" '(projectile-add-known-project :which-key "Add to known projects")
+    "px" '(ak/open-project-scratch-buffer :which-key "Open project scratch buffer")
+    "pX" '(ak/switch-to-project-scratch-buffer :which-key "Switch to project scratch buffer"))
+#+end_src
+
+** Prog mode
+*** Rainbow delimiters
+#+begin_src emacs-lisp
+  (use-package rainbow-delimiters
+    :hook ((org-mode prog-mode) . rainbow-delimiters-mode))
+#+end_src
+
+*** Emacs Lisp
+**** Elisp def
+#+begin_src emacs-lisp
+  (use-package elisp-def
+    :hook (emacs-lisp-mode . elisp-def-mode)
+    :config
+    (general-define-key
+     :keymaps 'emacs-lisp-mode-map
+     "gd" 'elisp-def)
+    (general-define-key
+     :keymaps 'embark-symbol-map
+     "d" 'elisp-def))
+#+end_src
+
+* Org Mode
+** UI
+**** Org modern
+Using =org-modern= for a nicer org UI.
+#+begin_src emacs-lisp
+  (use-package org-modern
+    :init
+    (add-hook 'org-mode-hook #'org-modern-mode)
+    (add-hook 'org-agenda-finalize-hook #'org-modern-agenda)
+    :config
+    (setq org-modern-block nil))
+#+end_src
+
+**** Custom faces
+#+begin_src emacs-lisp
+  (set-face-attribute 'org-document-title nil :foreground (modus-themes-color 'green) :height 1.8)
+#+end_src
+
+** Block templates
+Easy org block templates. Type <s and =TAB= for source block.
+#+begin_src emacs-lisp
+  (require 'org-tempo)
+  (add-to-list 'org-structure-template-alist '("sh" . "src sh"))
+  (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+#+end_src
+
+** Consult org headings
+#+begin_src emacs-lisp
+  (ak/local-leader-key-def
+   :states 'normal
+   :keymaps 'org-mode-map
+   "h" 'consult-org-heading)
+#+end_src
+
+* Tools and packages
+Configurations for various tools and packages.
+** Dired
+#+begin_src emacs-lisp
+ 
+#+end_src
+
+** Helpful
+Better help buffers with =helpful=.
+#+begin_src emacs-lisp
+  (use-package helpful
+    :hook (helpful-mode . visual-line-mode)
+    :init
+    (global-set-key [remap describe-function] #'helpful-callable)
+    (global-set-key [remap describe-command]  #'helpful-command)
+    (global-set-key [remap describe-variable] #'helpful-variable)
+    (global-set-key [remap describe-key]      #'helpful-key)
+    (global-set-key [remap describe-symbol]   #'helpful-symbol)
+    :config
+    (general-define-key
+     :keymaps 'embark-symbol-map
+     [remap describe-symbol] 'helpful-symbol))
+#+end_src
+
+** Pdf Tools
+Reading pdfs with =pdf-tools=.
+#+begin_src emacs-lisp
+    (use-package pdf-tools
+      :config
+      (add-to-list 'auto-mode-alist '("\\.pdf\\'" . pdf-view-mode))
+      (add-hook 'pdf-view-mode-hook 'pdf-view-midnight-minor-mode)
+      (setq-default pdf-view-display-size 'fit-page)
+      (setq pdf-view-use-scaling t
+	    pdf-view-use-imagemagick nil
+	    pdf-view-midnight-colors '("#ebdbb2" . "#282828"))
+      ;; Fix flickering pdfs when evil-mode is enabled
+      (add-hook 'pdf-view-mode-hook #'(lambda () (setq-local evil-normal-state-cursor (list nil)))))
+#+end_src
+
+** Nov
+Reading ebooks with =nov.el=.
+#+begin_src emacs-lisp
+  (use-package nov
+    :config
+    (add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode))
+    (add-hook 'nov-mode-hook 'visual-line-mode)
+    (setq nov-text-width 80))
+#+end_src
+
+** Avy
+Jumping around with =avy=.
+#+begin_src emacs-lisp
+  (use-package avy
+    :config
+    (setq avy-background t
+	  avy-single-candidate-jump nil)
+    (general-define-key
+     :states 'normal
+     :keymaps 'global
+     "gs" 'avy-goto-char-timer)
+#+end_src
+
+*** Embark integration
+#+begin_src emacs-lisp
+  (defun ak/avy-action-embark (pt)
+    "Avy action to call embark-act"
+    (unwind-protect
+	(save-excursion
+	  (goto-char pt)
+	  (embark-act))
+      (select-window
+       (cdr (ring-ref avy-ring 0))))
+    t)
+  (setf (alist-get ?. avy-dispatch-alist) 'ak/avy-action-embark))
+#+end_src
+
+** Vterm
+Better terminal emulation with =vterm=.
+#+begin_src emacs-lisp
+  (use-package vterm
+    :after evil-collection
+    :commands (vterm ak/vterm-toggle ak/vterm-here)
+    :config
+    (setq vterm-max-scrollback 10000)
+    (advice-add 'evil-collection-vterm-insert :before #'vterm-reset-cursor-point)
+#+end_src
+
+*** Perspective aware vterm popups
+#+begin_src emacs-lisp
+    (defun ak/vterm-configure-project-root-and-display (arg display-fn)
+      "Sets the environment variable PROOT and displays a terminal using `display-fn`.
+    If prefix ARG is non-nil, cd into `default-directory' instead of project root.
+    Returns the vterm buffer."
+      (unless (fboundp 'module-load)
+	(user-error "Your build of Emacs lacks dynamic modules support and cannot load vterm"))
+      (let* ((project-root (or (ak/project-root) default-directory))
+	     (default-directory
+	       (if arg
+		   default-directory
+		 project-root)))
+	(setenv "PROOT" project-root)
+	(funcall display-fn)))
+
+      (defun ak/vterm-toggle (arg)
+	"Toggles a terminal popup window at project root.
+      If prefix ARG is non-nil, recreate vterm buffer in the default directory.
+      Returns the vterm buffer."
+	(interactive "P")
+	(ak/vterm-configure-project-root-and-display
+	 arg
+	 (lambda()
+	   (let ((buffer-name
+		  (format "*vterm-popup:%s*"
+			  (if (bound-and-true-p persp-mode)
+			      (persp-current-name)
+			    "main")))
+		 confirm-kill-processes
+		 current-prefix-arg)
+	     (when arg
+	       (let ((buffer (get-buffer buffer-name))
+		     (window (get-buffer-window buffer-name)))
+		 (when (buffer-live-p buffer)
+		   (kill-buffer buffer))
+		 (when (window-live-p window)
+		   (delete-window window))))
+	     (if-let (win (get-buffer-window buffer-name))
+		 (delete-window win)
+	       (let ((buffer (get-buffer-create buffer-name)))
+		 (with-current-buffer buffer
+		   (unless (eq major-mode 'vterm-mode)
+		     (vterm-mode)))
+		 (pop-to-buffer buffer)))
+	     (get-buffer buffer-name)))))
+#+end_src
+
+*** Vterm anywhere
+Open vterm in project root or default directory.
+#+begin_src emacs-lisp
+  (defun ak/vterm-here (arg)
+    "Open a terminal buffer in the current window at project root.
+  If prefix ARG is non-nil, cd into `default-directory' instead of project root.
+  Returns the vterm buffer."
+    (interactive "P")
+    (ak/vterm-configure-project-root-and-display
+     arg
+     (lambda()
+       (let (display-buffer-alist)
+	 (vterm vterm-buffer-name))))))
+#+end_src
+
+*** Keybindings
+#+begin_src emacs-lisp
+  (ak/leader-key-def
+    "ot" 'ak/vterm-toggle
+    "oT" 'ak/vterm-here)
 #+end_src
 
 * TODOs
