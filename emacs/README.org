@@ -720,6 +720,18 @@ Advice function to return the dashboard buffer instead of scratch when a new per
 	(unless (equal persp-mode t)
 	  (persp-mode)))
 #+end_src
+** Buffer management
+#+begin_src 
+
+#+end_src
+
+** Scratch buffer
+Require custom scratch buffer utility.
+#+begin_src emacs-lisp
+  (with-eval-after-load 'projectile
+    (require 'scratchy)
+    (setq scratchy-dir (expand-file-name "scratch" ak-etc-dir)))
+#+end_src
 
 ** Save place
 Turn on =save-place-mode=.
@@ -727,19 +739,13 @@ Turn on =save-place-mode=.
   (save-place-mode 1) 
 #+end_src
 
-** Scratch buffer
-Require custom scratch buffer utility.
-#+begin_src emacs-lisp
-(require 'ak-scratch)
-#+end_src
-
 ** Keybindings
 #+begin_src emacs-lisp
   (ak-leader-key-def
     "b" '(:ignore t :which-key "buffer")
     "bd" '(kill-current-buffer :which-key "Kill buffer")
-    "bx" '(ak-open-scratch-buffer :which-key "Open scratch buffer")
-    "bX" '(ak-switch-to-scratch-buffer :which-key "Switch to scratch buffer"))
+    "bx" '(scratchy-open-scratch-buffer :which-key "Open scratch buffer")
+    "bX" '(scratchy-switch-to-scratch-buffer :which-key "Switch to scratch buffer"))
 #+end_src
 
 * Development
@@ -869,8 +875,8 @@ Bridge between perspective and projectile.
     "p" '(:package projectile :keymap projectile-command-map :which-key "projects")
     "SPC" '(consult-projectile-find-file :which-key "Find file in project")
     "pa" '(projectile-add-known-project :which-key "Add to known projects")
-    "px" '(ak-open-project-scratch-buffer :which-key "Open project scratch buffer")
-    "pX" '(ak-switch-to-project-scratch-buffer :which-key "Switch to project scratch buffer"))
+    "px" '(scratchy-open-project-scratch-buffer :which-key "Open project scratch buffer")
+    "pX" '(scratchy-switch-to-project-scratch-buffer :which-key "Switch to project scratch buffer"))
 #+end_src
 
 ** Prog mode
