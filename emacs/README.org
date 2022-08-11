@@ -719,11 +719,32 @@ Advice function to return the dashboard buffer instead of scratch when a new per
   (advice-add 'persp-get-scratch-buffer :override #'ak-persp-get-dashboard-buffer)
 #+end_src
 
+*** Quick save perspectives
+Conveniently save and load perspectives.
+#+begin_src emacs-lisp
+  (make-directory persp-save-dir t)
+  (setq persp-state-default-file (expand-file-name "default.el" persp-save-dir))
+
+  (defun ak-persp-state-quick-save ()
+    "Quick save current perspective state into `persp-state-default-file'"
+    (interactive)
+    (persp-state-save))
+
+  (defun ak-persp-state-quick-load ()
+    "Quick load the perspective state from `persp-state-default-file'"
+    (interactive)
+    (persp-state-load persp-state-default-file))
+
+  (add-hook 'kill-emacs-hook #'persp-state-save)
+#+end_src
+
 *** Keybindings
 #+begin_src emacs-lisp
   (general-def perspective-map
     "TAB" 'ak-persp-display
-    "d" 'ak-persp-kill-current)
+    "d" 'ak-persp-kill-current
+    "S" 'ak-persp-state-quick-save
+    "R" 'ak-persp-state-quick-load)
 
   (ak-leader-key-def
     "TAB" '(:keymap perspective-map :which-key "workspace"))
