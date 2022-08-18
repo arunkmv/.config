@@ -72,7 +72,7 @@ Use straight to install packages by default and in use-package expressions.
 (straight-use-package 'use-package)
 #+end_src
 
-** Directories and files
+** Cache directories
 Cache directories.
 #+begin_src emacs-lisp
 (defconst ak-etc-dir
@@ -80,15 +80,6 @@ Cache directories.
 
 (defconst ak-var-dir
   (concat ak-local-dir "var/"))
-#+end_src
-
-BibTeX managed by zotero.
-#+begin_src emacs-lisp
-  (defvar ak-zotero-bibtex-library (concat (getenv "HOME") "/Documents/Zotero/")
-    "Path to bibtex library managed by Zotero")
-
-  (defvar ak-zotero-bibtex-file (expand-file-name "references.bib" ak-zotero-bibtex-library)
-    "Path to bibtex file managed by Zotero")
 #+end_src
 
 ** Keep .emacs.d clean
@@ -258,7 +249,7 @@ Set font and size.
     (set-face-attribute 'variable-pitch nil
 			:font "FiraGO"
 			:weight 'Light
-			:height 170)
+			:height 200)
 #+end_src
 
 Use =all-the-icons=.
@@ -269,12 +260,13 @@ Use =all-the-icons=.
 
 ** Clean up Emacs UI
 #+begin_src emacs-lisp
-(setq inhibit-startup-message t)
-(scroll-bar-mode -1)
-(tool-bar-mode -1)
-(tooltip-mode -1)
-(set-fringe-mode 10)
-(menu-bar-mode -1)
+  (setq inhibit-startup-message t)
+  (scroll-bar-mode -1)
+  (tool-bar-mode -1)
+  (tooltip-mode -1)
+  (set-fringe-mode 10)
+  (menu-bar-mode -1)
+  (blink-cursor-mode -1)
 #+end_src
 
 ** Frame size
@@ -344,9 +336,10 @@ Trying out =modus-themes=.
   (use-package modus-themes
     :init
     (setq modus-themes-italic-constructs t
-	  modus-themes-bold-constructs nil
+	  modus-themes-bold-constructs t
 	  modus-themes-mixed-fonts t
-	  modus-themes-syntax '(green-strings)
+;; comment
+	  modus-themes-syntax '(green-strings yellow-comments)
 	  modus-themes-prompts '(bold intense)
 	  modus-themes-completions
 	  '((matches . (extrabold background))
@@ -394,13 +387,15 @@ Remove doom-modeline time and battery hooks to display battery status in tab bar
 Change faces of modeline evil indicators.
 #+begin_src emacs-lisp
   (defun ak-doom-modeline-evil-indicator-set-colors-h ()
-    (set-face-attribute 'doom-modeline-evil-emacs-state    nil :background (modus-themes-color 'magenta)         :foreground (modus-themes-color 'bg-main))
-    (set-face-attribute 'doom-modeline-evil-normal-state   nil :background (modus-themes-color 'green)           :foreground (modus-themes-color 'bg-main))
-    (set-face-attribute 'doom-modeline-evil-insert-state   nil :background (modus-themes-color 'blue)            :foreground (modus-themes-color 'bg-main))
-    (set-face-attribute 'doom-modeline-evil-visual-state   nil :background (modus-themes-color 'orange-intense)  :foreground (modus-themes-color 'bg-main))
-    (set-face-attribute 'doom-modeline-evil-motion-state   nil :background (modus-themes-color 'red-intense)     :foreground (modus-themes-color 'fg-main))
-    (set-face-attribute 'doom-modeline-evil-operator-state nil :background (modus-themes-color 'yellow-intense)  :foreground (modus-themes-color 'bg-main))
-    (set-face-attribute 'doom-modeline-evil-replace-state  nil :background (modus-themes-color 'magenta-intense) :foreground (modus-themes-color 'fg-main)))
+    (modus-themes-with-colors
+      (custom-set-faces
+       `(doom-modeline-evil-emacs-state ((,class :background ,magenta :foreground ,bg-main)))
+       `(doom-modeline-evil-normal-state ((,class :background ,green :foreground ,bg-main)))
+       `(doom-modeline-evil-insert-state ((,class :background ,blue :foreground ,bg-main)))
+       `(doom-modeline-evil-visual-state ((,class :background ,orange-intense :foreground ,bg-main)))
+       `(doom-modeline-evil-motion-state ((,class :background ,red-intense :foreground ,bg-main)))
+       `(doom-modeline-evil-operator-state ((,class :background ,yellow-intense :foreground ,bg-main)))
+       `(doom-modeline-evil-replace-state ((,class :background ,magenta-intense :foreground ,bg-main))))))
 
   (add-hook 'doom-modeline-mode-hook 'ak-doom-modeline-evil-indicator-set-colors-h)
   (add-hook 'modus-themes-after-load-theme-hook 'ak-doom-modeline-evil-indicator-set-colors-h)
@@ -454,7 +449,18 @@ Add keybindings for scrolling other window. Useful for [[*Embark][Embark]].
    "C-<" 'scroll-other-window-down)
 #+end_src
 
-** Highlight cursor
+** Cursor
+Customize cursor color.
+#+begin_src emacs-lisp
+  (defun ak-cursor-color-set-color-h ()
+    (modus-themes-with-colors
+      (custom-set-faces
+       `(cursor ((,class :background ,magenta-intense))))))
+
+  (add-hook 'modus-themes-after-load-theme-hook #'ak-cursor-color-set-color-h)
+#+end_src
+
+*** Highlight cursor
 =pulsar= to highlight cursor location.
 #+begin_src emacs-lisp
   (use-package pulsar
@@ -522,6 +528,12 @@ Function to toggle display and cycle styles of line numbers.
 
   (ak-leader-key-def
     "tl" '(ak-cycle-line-numbers :which-key "Line numbers"))
+#+end_src
+
+** Visual line mode
+Use =visual-line-mode= in document buffers.
+#+begin_src emacs-lisp
+  (add-hook 'org-mode-hook 'visual-line-mode)
 #+end_src
 
 * Completion
@@ -642,41 +654,54 @@ Adding cape for additional completion-at-point functions.
     (all-the-icons-completion-mode))
 #+end_src
 
-** BibTeX management
-*** BibTeX completion
-=bibtex-completion= BibTeX backend for completion frameworks.
+** Bibliography management
 #+begin_src emacs-lisp
-  (use-package bibtex-completion
-    :custom
-    (bibtex-completion-additional-search-fields nil)
-    (bibtex-completion-display-formats
-     '((t . "${=has-pdf=:2}${=has-note=:2} ${title:*} ${year:4} ${author:36}")))
-    :init
-    (with-eval-after-load 'all-the-icons
-      (setq
-       bibtex-completion-pdf-symbol   (all-the-icons-octicon "file-pdf")
-       bibtex-completion-notes-symbol (all-the-icons-fileicon "org")))
-    :config
-    (setq bibtex-completion-library-path ak-zotero-bibtex-library
-	  bibtex-completion-bibliography ak-zotero-bibtex-file
-	  bibtex-completion-pdf-field "file"))
+  (defvar ak-zotero-bibtex-library (concat (getenv "HOME") "/Documents/Zotero/")
+    "Path to bibtex library managed by Zotero")
+
+  (defvar ak-zotero-bibtex-file (expand-file-name "references.bib" ak-zotero-bibtex-library)
+    "Path to bibtex file managed by Zotero")
+
+  (with-eval-after-load 'org
+    (defvar ak-org-notes-directory (concat org-directory "/notes")
+      "Directory where org notes are kept"))
 #+end_src
 
-*** Consult BibTeX
-=consult-bibtex= BibTeX frontend.
+*** Citar
+=citar= for managing bibliography.
 #+begin_src emacs-lisp
-    (use-package consult-bibtex
-      :straight (consult-bibtex :type git :host github :repo "mohkale/consult-bibtex")
-      :config
-      (setq consult-bibtex-default-action #'consult-bibtex-open-pdf)
-      (with-eval-after-load 'embark
-	(add-to-list 'embark-keymap-alist '(bibtex-completion . consult-bibtex-embark-map))))
+  (use-package citar
+    :custom
+    (citar-bibliography ak-zotero-bibtex-file)
+    (citar-library-paths (list ak-zotero-bibtex-library))
+    (citar-notes-paths (list ak-org-notes-directory))
+    :config
+    (setq citar-templates
+	  '((main . "${title:48}     ${author editor:30}     ${date year issued:4}")
+	    (suffix . "          ${=key= id:15}    ${=type=:12}    ${tags keywords:*}")
+	    (preview . "${author editor} (${year issued date}) ${title}, ${journal journaltitle publisher container-title collection-title}.\n")
+	    (note . "${title}")))
+    (with-eval-after-load 'all-the-icons
+      (setq citar-symbols
+	    `((file ,(all-the-icons-octicon "file-pdf" :face 'all-the-icons-red :v-adjust -0.1) . " ")
+	      (note ,(all-the-icons-fileicon "org" :face 'all-the-icons-green :v-adjust -0.3) . " ")
+	      (link ,(all-the-icons-octicon "link" :face 'all-the-icons-orange :v-adjust 0.01) . " "))))
+    (setq citar-symbol-separator "  "))
+#+end_src
+
+*** Citar embark
+=citar-embark= for more contextual actions.
+#+begin_src emacs-lisp
+  (use-package citar-embark
+    :after citar embark
+    :no-require
+    :config (citar-embark-mode))
 #+end_src
 
 *** Keybinding
 #+begin_src emacs-lisp
   (ak-leader-key-def
-    "ob" '(consult-bibtex :which-key "BibTeX"))
+    "ob" '(citar-open-files :which-key "BibTeX file"))
 #+end_src
 
 * Windows
@@ -921,38 +946,6 @@ Easy git management with =magit=.
     "gr"  'magit-rebase)
 #+end_src
 
-** Git Gutter
-View file changes with the =git-gutter=.
-#+begin_src emacs-lisp
-  (use-package git-gutter
-    :disabled
-    :hook ((text-mode . git-gutter-mode)
-	   (prog-mode . git-gutter-mode))
-    )
-#+end_src
-
-Prettier gutter with =git-gutter-fringe=.
-#+begin_src emacs-lisp
-  (use-package git-gutter-fringe
-    :disabled
-    :config
-    (if (fboundp 'fringe-mode) (fringe-mode '4))
-    ;; places the git gutter outside the margins.
-    (setq-default fringes-outside-margins t)
-    (define-fringe-bitmap 'git-gutter-fr:added [224] nil nil '(center repeated))
-    (define-fringe-bitmap 'git-gutter-fr:modified [224] nil nil '(center repeated))
-    (define-fringe-bitmap 'git-gutter-fr:deleted [128 192 224 240] nil nil 'bottom))
-
-  (defun ak-git-gutter-fringe-set-colors-h ()
-    (set-face-foreground 'git-gutter-fr:modified (modus-themes-color 'yellow-intense))
-    (set-face-foreground 'git-gutter-fr:added    (modus-themes-color 'green-intense))
-    (set-face-attribute 'git-gutter-fr:deleted nil :foreground (modus-themes-color 'red-intense-bg) :background (modus-themes-color 'red-intense))
-
-    (add-hook 'git-gutter-mode-on-hook 'ak-git-gutter-fringe-set-colors-h)
-    (add-hook 'modus-themes-after-load-theme-hook 'ak-git-gutter-fringe-set-colors-h))
-
-#+end_src
-
 ** Diff-hl
 #+begin_src emacs-lisp
   (use-package diff-hl
@@ -1054,7 +1047,9 @@ Bridge between perspective and projectile.
 #+begin_src emacs-lisp
   (use-package org
     :demand t
-    :straight (:type built-in))
+    :straight (:type built-in)
+    :config
+    (setq org-directory (concat (getenv "HOME") "/Org")))
 #+end_src
 
 ** UI
@@ -1173,7 +1168,8 @@ Flashcards with =org-fc=.
 	(visual-fill-column-mode 1)
 	(visual-line-mode 1)
 	(ak-toggle-line-numbers)
-	(hide-mode-line-mode 1))
+	(hide-mode-line-mode 1)
+	(org-present-hide-cursor))
 
       (defun ak-org-present-end-h ()
 	"Hook function run when `org-present' ends"
@@ -1184,7 +1180,8 @@ Flashcards with =org-fc=.
 	(visual-fill-column-mode 0)
 	(visual-line-mode 0)
 	(ak-toggle-line-numbers)
-	(hide-mode-line-mode 0))
+	(hide-mode-line-mode 0)
+	(org-present-show-cursor))
 
       (add-hook 'org-present-mode-hook 'ak-org-present-start-h)
       (add-hook 'org-present-mode-quit-hook 'ak-org-present-end-h))
@@ -1205,6 +1202,17 @@ Centering the presentation with =visual-fill-column=.
     :config
     (setq visual-fill-column-width 110
 	  visual-fill-column-center-text t))
+#+end_src
+
+** Note taking
+*** Org roam
+=org-roam= for capturing and linking notes.
+#+begin_src emacs-lisp
+  (use-package org-roam
+    :after org
+    :init
+    (setq org-roam-directory (file-truename ak-org-notes-directory))
+    (org-roam-db-autosync-mode))
 #+end_src
 
 ** Keybindings
@@ -1375,6 +1383,8 @@ Better terminal emulation with =vterm=.
    :keymaps 'vterm-mode-map
    "s" 'ak-vterm-consult-zsh-history)
 #+end_src
+
+** Eshell
 
 ** Latex
 Writing latex documents with =auctex=.
