@@ -436,7 +436,11 @@ Properly format global mode string as it is used by the tab bar.
 ** Better scrolling
 Add smooth scrolling and mouse scroll support.
 #+begin_src emacs-lisp
-  (setq scroll-step 1
+  (setq redisplay-dont-pause t
+	scroll-margin 1
+	scroll-step 1
+	scroll-conservatively 10000
+	scroll-preserve-screen-position 1
 	mouse-wheel-scroll-amount '(1 ((shift) . 1)) ;; one line at a time
 	mouse-wheel-progressive-speed nil            ;; don't accelerate scrolling
 	mouse-wheel-follow-mouse 't)                 ;; scroll window under mouse
@@ -671,6 +675,7 @@ Adding cape for additional completion-at-point functions.
 =citar= for managing bibliography.
 #+begin_src emacs-lisp
   (use-package citar
+    :after org
     :custom
     (citar-bibliography ak-zotero-bibtex-file)
     (citar-library-paths (list ak-zotero-bibtex-library))
@@ -1147,6 +1152,7 @@ Flashcards with =org-fc=.
 #+end_src
 
 ** Presentation
+*** org-present
 =org-present= for quick presentations with org mode.
 #+begin_src emacs-lisp
   (use-package org-present
@@ -1195,7 +1201,7 @@ Flashcards with =org-fc=.
     (add-hook 'org-present-after-navigate-functions 'ak-org-present-prepare-slide))
 #+end_src
 
-*** Centering the presentation
+**** Centering the presentation
 Centering the presentation with =visual-fill-column=.
 #+begin_src emacs-lisp
   (use-package visual-fill-column
