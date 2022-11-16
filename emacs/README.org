@@ -404,10 +404,10 @@ Change faces of modeline evil indicators.
 *** Hide modeline
 #+begin_src emacs-lisp
   (use-package hide-mode-line
-    :hook ((vterm-mode eshell-mode) . hide-mode-line-mode)
-    :config
-    (ak-leader-key-def
-      "tm" '(hide-mode-line-mode :which-key "Modeline")))
+    :hook ((vterm-mode eshell-mode) . hide-mode-line-mode))
+
+  (ak-leader-key-def
+    "tm" '(hide-mode-line-mode :which-key "Modeline"))
 #+end_src
 
 ** Tab bar
@@ -668,7 +668,13 @@ Adding cape for additional completion-at-point functions.
 
   (with-eval-after-load 'org
     (defvar ak-org-notes-directory (concat org-directory "/notes")
-      "Directory where org notes are kept"))
+      "Directory where org notes are kept")
+
+    (defvar ak-org-literature-notes-directory (concat ak-org-notes-directory "/literature")
+      "Directory where literature org notes are kept")
+
+    (defvar ak-org-main-notes-directory (concat ak-org-notes-directory "/main")
+      "Directory where main org notes are kept"))
 #+end_src
 
 *** Citar
@@ -679,7 +685,7 @@ Adding cape for additional completion-at-point functions.
     :custom
     (citar-bibliography ak-zotero-bibtex-file)
     (citar-library-paths (list ak-zotero-bibtex-library))
-    (citar-notes-paths (list ak-org-notes-directory))
+    (citar-notes-paths (list ak-org-literature-notes-directory))
     :config
     (setq citar-templates
 	  '((main . "${title:48}     ${author editor:30}     ${date year issued:4}")
@@ -966,6 +972,15 @@ Easy git management with =magit=.
     (setq diff-hl-side 'left))
 #+end_src
 
+** Markdown
+Markdown for easy documents.
+#+begin_src emacs-lisp
+(use-package markdown-mode
+  :ensure t
+  :mode ("README\\.md\\'" . gfm-mode)
+  :init (setq markdown-command "multimarkdown"))
+#+end_src
+
 ** Projects
 *** Projectile
 Working on projects with =projectile=.
@@ -1050,11 +1065,13 @@ Bridge between perspective and projectile.
 
 * Org Mode
 #+begin_src emacs-lisp
-  (use-package org
-    :demand t
-    :straight (:type built-in)
-    :config
-    (setq org-directory (concat (getenv "HOME") "/Org")))
+    (use-package org
+      :demand t
+      :straight (:type built-in)
+      :config
+      (setq org-directory (concat (getenv "HOME") "/Org"))
+      (add-to-list 'org-file-apps '("\\.pdf\\'" . emacs))
+      (require 'ak-org))
 #+end_src
 
 ** UI
@@ -1171,6 +1188,8 @@ Flashcards with =org-fc=.
 	(setq header-line-format " ")
 	(evil-normal-state)
 	(variable-pitch-mode 1)
+	(setq visual-fill-column-width 110
+	      visual-fill-column-center-text t)
 	(visual-fill-column-mode 1)
 	(visual-line-mode 1)
 	(ak-toggle-line-numbers)
@@ -1204,21 +1223,56 @@ Flashcards with =org-fc=.
 **** Centering the presentation
 Centering the presentation with =visual-fill-column=.
 #+begin_src emacs-lisp
-  (use-package visual-fill-column
-    :config
-    (setq visual-fill-column-width 110
-	  visual-fill-column-center-text t))
+  (use-package visual-fill-column)
 #+end_src
 
 ** Note taking
 *** Org roam
 =org-roam= for capturing and linking notes.
 #+begin_src emacs-lisp
-  (use-package org-roam
+    (use-package org-roam
+      :after org
+      :init
+      (setq org-roam-directory (file-truename ak-org-notes-directory))
+      (org-roam-db-autosync-mode)
+      (setq org-roam-capture-templates
+	    '(("m" "main" plain
+	       "%?"
+	       :if-new (file+head "main/${slug}.org"
+				  "#+title: ${title}\n")
+	       :immediate-finish t
+	       :unnarrowed t)
+	      ("l" "literature" plain
+	       "%?"
+	       :if-new (file+head "literature/${title}.org" "#+title: ${title}\n")
+	       :immediate-finish t
+	       :unnarrowed t))))
+#+end_src
+
+*** Org noter
+=org-noter= for taking reference notes.
+#+begin_src emacs-lisp
+  (use-package org-noter
     :after org
-    :init
-    (setq org-roam-directory (file-truename ak-org-notes-directory))
-    (org-roam-db-autosync-mode))
+    :config
+    (setq org-noter-notes-window-location 'vertical-split
+	  org-noter-doc-split-fraction '(0.2 . 0.8)
+	  org-noter-hide-other nil
+	  org-noter-always-create-frame nil
+	  org-noter-notes-search-path (list ak-org-literature-notes-directory)
+	  org-noter-separate-notes-from-heading nil)
+
+    (add-hook 'org-noter-doc-mode 'evil-normal-state))
+
+  (ak-local-leader-key-def
+    :states 'normal
+    :keymaps 'org-noter-doc-mode-map
+    "i" '(org-noter-insert-note :which-key "Insert note")
+    "p" '(org-noter-insert-precise-note :which-key "Insert precise note")
+    "k" '(org-noter-sync-prev-note :which-key "Go to previous note")
+    "j" '(org-noter-sync-next-note :which-key "Go to next note")
+    "s" '(org-noter-create-skeleton :which-key "Create skeleton")
+    "q" '(org-noter-kill-session :which-key "Kill session"))
 #+end_src
 
 ** Keybindings
@@ -1226,7 +1280,41 @@ Centering the presentation with =visual-fill-column=.
   (ak-local-leader-key-def
     :states 'normal
     :keymaps 'org-mode-map
-    "p" '(org-present :which-key "Present"))
+    "p" '(org-present :which-key "Present")
+    "e" '(org-export-dispatch :which-key "Export"))
+
+  (general-define-key
+   :states 'normal
+   :keymaps 'org-mode-map
+   "C-o" 'ak-org-insert-item-below
+   "C-O" 'ak-org-insert-item-above)
+#+end_src
+
+** Latex export
+Setup latex and beamer export
+#+begin_src emacs-lisp
+  (with-eval-after-load 'org
+    (add-hook 'org-mode-hook 'org-beamer-mode)
+    (eval-after-load 'ox '(require 'ox-koma-letter))
+
+    (require 'ox-latex)
+    (setq org-latex-listings t)
+    (add-to-list 'org-latex-packages-alist '("" "listings"))
+    (add-to-list 'org-latex-packages-alist '("" "color"))
+    (setq org-latex-pdf-process
+	  '("pdflatex -interaction nonstopmode -output-directory %o %f"
+	    "bibtex %b"
+	    "pdflatex -interaction nonstopmode -output-directory %o %f"
+	    "pdflatex -interaction nonstopmode -output-directory %o %f")))
+#+end_src
+
+*** Org-cite
+Configure =org-cite=.
+#+begin_src emacs-lisp
+  (with-eval-after-load 'org
+    (require 'oc)
+    (setq org-cite-global-bibliography (list ak-zotero-bibtex-file)
+	  org-cite-csl-styles-dir "~/Zotero/styles"))
 #+end_src
 
 * Tools and packages
@@ -1308,24 +1396,21 @@ Reading pdfs with =pdf-tools=.
   (use-package pdf-tools
     :config
     (add-to-list 'auto-mode-alist '("\\.pdf\\'" . pdf-view-mode))
-    (add-hook 'pdf-view-mode-hook 'pdf-view-midnight-minor-mode)
     (setq-default pdf-view-display-size 'fit-page)
     (setq pdf-view-use-scaling t
 	  pdf-view-use-imagemagick nil
 	  pdf-view-midnight-colors '("#ebdbb2" . "#282828"))
     ;; Fix flickering pdfs when evil-mode is enabled
     (add-hook 'pdf-view-mode-hook #'(lambda () (setq-local evil-normal-state-cursor (list nil))))
+    (add-hook 'pdf-view-mode-hook 'pdf-view-midnight-minor-mode)
     (add-hook 'pdf-view-mode-hook 'pdf-history-minor-mode)
+    (add-hook 'pdf-view-mode-hook 'pdf-isearch-minor-mode)
     (general-define-key
      :states 'normal
      :keymaps 'pdf-view-mode-map
      "gh" '(:ignore t :which-key "PDF history")
      "ghf" '(pdf-history-forward :which-key "Forward")
      "ghb" '(pdf-history-backward :which-key "Backward")))
-#+end_src
-
-*** History navigation keybindings
-#+begin_src emacs-lisp
 #+end_src
 
 ** Nov
