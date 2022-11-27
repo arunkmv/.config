@@ -205,6 +205,12 @@ Setup convenient bindings and other which key prefixes.
     "m" '(:ignore t :which-key "local leader")
     "o" '(:ignore t :which-key "open")
     "t" '(:ignore t :which-key "toggle"))
+
+  (general-define-key
+   :states 'normal
+   :keymaps 'org-present-mode-keymap 
+   "g[" 'evil-goto-first-line
+   "g]" 'evil-goto-line)
 #+end_src
 
 *** Reload init.el
@@ -308,9 +314,15 @@ Use =fancy-battery= for a nicer battery display
     (setq fancy-battery-show-percentage t))
 #+end_src
 
-** Don't ring the bell
+** DND
+*** Don't ring the bell
 #+begin_src emacs-lisp
   (setq ring-bell-function 'ignore)
+#+end_src
+
+*** Silence native compilations warnings
+#+begin_src emacs-lisp
+(setq native-comp-async-report-warnings-errors nil)
 #+end_src
 
 ** Dashboard
@@ -469,10 +481,10 @@ Customize cursor color.
 #+begin_src emacs-lisp
   (use-package pulsar
     :config
-    (setq pulsar-pulse-on-window-change t)
-    (setq pulsar-delay 0.06)
-    (setq pulsar-iterations 10)
-    (setq pulsar-face 'pulsar-generic)
+    (setq pulsar-pulse-on-window-change t
+	  pulsar-delay 0.06
+	  pulsar-iterations 10
+	  pulsar-face 'pulsar-generic)
     (pulsar-global-mode))
 #+end_src
 
@@ -1063,15 +1075,22 @@ Bridge between perspective and projectile.
      "d" 'elisp-def))
 #+end_src
 
+*** YAML mode
+#+begin_src emacs-lisp
+    (use-package yaml-mode
+      :mode ("\\.core\\'" . yaml-mode))
+#+end_src
+
 * Org Mode
 #+begin_src emacs-lisp
-    (use-package org
-      :demand t
-      :straight (:type built-in)
-      :config
-      (setq org-directory (concat (getenv "HOME") "/Org"))
-      (add-to-list 'org-file-apps '("\\.pdf\\'" . emacs))
-      (require 'ak-org))
+      (use-package org
+	:demand t
+	:straight (:type built-in)
+	:config
+	(setq org-directory (concat (getenv "HOME") "/Org")
+	      org-fold-core-style 'overlays)
+	(add-to-list 'org-file-apps '("\\.pdf\\'" . emacs))
+	(require 'ak-org))
 #+end_src
 
 ** UI
@@ -1230,27 +1249,92 @@ Centering the presentation with =visual-fill-column=.
 *** Org roam
 =org-roam= for capturing and linking notes.
 #+begin_src emacs-lisp
-    (use-package org-roam
-      :after org
-      :init
-      (setq org-roam-directory (file-truename ak-org-notes-directory))
-      (org-roam-db-autosync-mode)
-      (setq org-roam-capture-templates
-	    '(("m" "main" plain
-	       "%?"
-	       :if-new (file+head "main/${slug}.org"
-				  "#+title: ${title}\n")
-	       :immediate-finish t
-	       :unnarrowed t)
-	      ("l" "literature" plain
-	       "%?"
-	       :if-new (file+head "literature/${title}.org" "#+title: ${title}\n")
-	       :immediate-finish t
-	       :unnarrowed t))))
+  (use-package org-roam
+    :after org
+    :init
+    (setq org-roam-directory (file-truename ak-org-notes-directory))
+    (org-roam-db-autosync-mode)
+    (setq org-roam-capture-templates
+	  '(("m" "main" plain
+	     "%?"
+	     :if-new (file+head "main/${title}.org" "#+title: ${title}\n- tags :: \n")
+	     :immediate-finish t
+	     :unnarrowed t)
+	    ("r" "reference" plain
+	     "%?"
+	     :if-new (file+head "reference/${title}.org" "#+title: ${title}\n- tags :: \n")
+	     :immediate-finish t
+	     :unnarrowed t)))
+    :config
+    (cl-defmethod org-roam-node-type ((node org-roam-node))
+      "Return the TYPE of NODE."
+      (condition-case nil
+	  (file-name-nondirectory
+	   (directory-file-name
+	    (file-name-directory
+	     (file-relative-name (org-roam-node-file node) org-roam-directory))))
+	(error "")))
+
+    (setq org-roam-node-display-template
+	  (concat "${type:15} ${title:*} " (propertize "${tags:10}" 'face 'org-tag))))
+#+end_src
+
+**** Org Roam BibTeX
+Literature notes with =org-roam-bibtex=.
+#+begin_src emacs-lisp
+    (use-package org-roam-bibtex
+      :after org-roam
+      :hook (org-roam-mode . org-roam-bibtex-mode)
+      :config
+      (setq orb-roam-ref-format 'org-cite))
+#+end_src
+
+**** Citar org roam
+Integration between =citar=, =org-roam= and =org-noter=.
+#+begin_src emacs-lisp
+  (use-package citar-org-roam
+    :config
+    (defvar ak-citar-org-roam-note-header-template "- tags ::\n\n* Notes\n  :PROPERTIES:\n  :Custom_ID: ${citekey}\n  :NOTER_DOCUMENT: ${file}\n  :NOTER_PAGE: \n  :END:\n\n")
+
+    (defun ak-citar-org-roam--create-capture-note (citekey entry)
+      "Open or create org-roam node for CITEKEY and ENTRY.
+  Adds a custom header to associate the note and file with `org-noter'"
+      ;; adapted from https://jethrokuan.github.io/org-roam-guide/#orgc48eb0d
+      (let ((title (citar-format--entry
+		    citar-org-roam-note-title-template entry))
+	    (header (citar-format--entry
+		     ak-citar-org-roam-note-header-template entry)))
+	(org-roam-capture-
+	 :templates
+	 '(("r" "reference" plain "%?" :if-new
+	    (file+head
+	     "%(concat
+	 (when citar-org-roam-subdir (concat citar-org-roam-subdir \"/\")) \"${citekey}.org\")"
+	     "#+title: ${title}\n${header}")
+	    :immediate-finish t
+	    :unnarrowed t))
+	 :info (list :citekey citekey :header header)
+	 :node (org-roam-node-create :title title)
+	 :props '(:finalize find-file))
+	(org-roam-ref-add (concat "[cite:@" citekey "]"))))
+
+    (citar-register-notes-source
+     'ak-citar-org-roam-source (list :name "Org-Roam Notes"
+				  :category 'org-roam-node
+				  :items #'citar-org-roam--get-candidates
+				  :hasitems #'citar-org-roam-has-notes
+				  :open #'citar-org-roam-open-note
+				  :create #'ak-citar-org-roam--create-capture-note
+				  :annotate #'citar-org-roam--annotate))
+
+    (setq citar-notes-source 'ak-citar-org-roam-source
+	  citar-org-roam-subdir ak-org-literature-notes-directory
+	  citar-org-roam-note-title-template "${title}"))
+
 #+end_src
 
 *** Org noter
-=org-noter= for taking reference notes.
+=org-noter= for taking literature notes.
 #+begin_src emacs-lisp
   (use-package org-noter
     :after org
@@ -1262,7 +1346,7 @@ Centering the presentation with =visual-fill-column=.
 	  org-noter-notes-search-path (list ak-org-literature-notes-directory)
 	  org-noter-separate-notes-from-heading nil)
 
-    (add-hook 'org-noter-doc-mode 'evil-normal-state))
+    (add-hook 'org-noter-doc-mode-hook 'evil-normal-state))
 
   (ak-local-leader-key-def
     :states 'normal
