@@ -1071,6 +1071,17 @@ Bridge between perspective and projectile.
       :mode ("\\.core\\'" . yaml-mode))
 #+end_src
 
+*** Vivado mode
+=vivado-mode= for editing Xilinx Design Constraint files (XDC) and Vivado Tcl.
+#+begin_src emacs-lisp
+  (use-package vivado-mode
+    :straight nil
+    :config
+    (setq auto-mode-alist (cons  '("\\.xdc\\'" . vivado-mode) auto-mode-alist))
+    (add-hook 'vivado-mode-hook '(lambda () (font-lock-mode 1)))
+    (autoload 'vivado-mode "vivado-mode"))
+#+end_src
+
 * Org Mode
 #+begin_src emacs-lisp
       (use-package org
@@ -1554,6 +1565,13 @@ Reading pdfs with =pdf-tools=.
      "gh" '(:ignore t :which-key "PDF history")
      "ghf" '(pdf-history-forward :which-key "Forward")
      "ghb" '(pdf-history-backward :which-key "Backward")))
+#+end_src
+
+** Saveplace pdf view
+=saveplace-pdf-view= to restore the last known pdf position.
+#+begin_src emacs-lisp
+  (use-package saveplace-pdf-view
+    :after pdf-tools)
 #+end_src
 
 ** Nov
