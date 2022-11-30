@@ -677,23 +677,13 @@ Adding cape for additional completion-at-point functions.
 
   (defvar ak-zotero-bibtex-file (expand-file-name "references.bib" ak-zotero-bibtex-library)
     "Path to bibtex file managed by Zotero")
-
-  (with-eval-after-load 'org
-    (defvar ak-org-notes-directory (concat org-directory "/notes")
-      "Directory where org notes are kept")
-
-    (defvar ak-org-literature-notes-directory (concat ak-org-notes-directory "/literature")
-      "Directory where literature org notes are kept")
-
-    (defvar ak-org-main-notes-directory (concat ak-org-notes-directory "/main")
-      "Directory where main org notes are kept"))
 #+end_src
 
 *** Citar
 =citar= for managing bibliography.
 #+begin_src emacs-lisp
   (use-package citar
-    :after org
+    :defer t
     :custom
     (citar-bibliography ak-zotero-bibtex-file)
     (citar-library-paths (list ak-zotero-bibtex-library))
@@ -1094,7 +1084,7 @@ Bridge between perspective and projectile.
 #+end_src
 
 ** UI
-**** Org modern
+*** Org modern
 Using =org-modern= for a nicer org UI.
 #+begin_src emacs-lisp
   (use-package org-modern
@@ -1103,22 +1093,6 @@ Using =org-modern= for a nicer org UI.
     (add-hook 'org-agenda-finalize-hook #'org-modern-agenda)
     :config
     (setq org-modern-block nil))
-#+end_src
-
-** Block templates
-Easy org block templates. Type <s and =TAB= for source block.
-#+begin_src emacs-lisp
-  (require 'org-tempo)
-  (add-to-list 'org-structure-template-alist '("sh" . "src sh"))
-  (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
-#+end_src
-
-** Consult org headings
-#+begin_src emacs-lisp
-  (ak-local-leader-key-def
-   :states 'normal
-   :keymaps 'org-mode-map
-   "h" 'consult-org-heading)
 #+end_src
 
 ** Flashcards
@@ -1188,7 +1162,7 @@ Flashcards with =org-fc=.
 #+end_src
 
 ** Presentation
-*** org-present
+*** Org present
 =org-present= for quick presentations with org mode.
 #+begin_src emacs-lisp
   (use-package org-present
@@ -1246,6 +1220,74 @@ Centering the presentation with =visual-fill-column=.
 #+end_src
 
 ** Note taking
+*** Directories and files
+#+begin_src emacs-lisp
+  (defvar ak-org-notes-directory (concat org-directory "/notes")
+    "Directory where org notes are kept")
+
+  (defvar ak-org-main-notes-directory (concat ak-org-notes-directory "/main")
+    "Directory where main org notes are kept")
+
+  (defvar ak-org-reference-notes-directory (concat ak-org-notes-directory "/reference")
+    "Directory where reference org notes are kept")
+
+  (defvar ak-org-literature-notes-directory (concat ak-org-notes-directory "/literature")
+    "Directory where literature org notes are kept")
+
+  (defvar ak-org-todo-file (concat org-directory "/todo.org")
+    "File to capture tasks")
+
+  (defvar ak-org-slipbox-file (concat ak-org-notes-directory "/inbox.org")
+    "File to capture quick notes")
+#+end_src
+
+*** Org capture
+=doct= for declarative =org-capture= templates.
+#+begin_src emacs-lisp
+  (use-package doct
+    :commands (doct))
+
+  (with-eval-after-load 'org-capture
+    (setq org-capture-templates
+	  (doct `(("Tasks" :keys "t"
+		   :file ak-org-todo-file
+		   :prepend t
+		   :headline "Tasks"
+		   :type entry
+		   :template ("* TODO %? %^g%{extra}"
+			      "%i %a")
+		   :children (("General Task" :keys "t"
+			       :extra "")
+			      ("Task with deadline" :keys "d"
+			       :extra "\nDEADLINE: %^{Deadline:}t")
+			      ("Scheduled Task" :keys "s"
+			       :extra "\nSCHEDULED: %^{Start time:}t")))
+		  ("Resource" :keys "r"
+		   :file ak-org-todo-file
+		   :prepend t
+		   :type entry
+		   :template "* TODO [[%^{URL}][%^{Title}]]%? :%{url-type}:"
+		   :children (("Article" :keys "a"
+			       :headline "Articles"
+			       :url-type "article")
+			      ("Book" :keys "b"
+			       :headline "Book"
+			       :url-type "book")
+			      ("Video" :keys "v"
+			       :headline "Videos"
+			       :url-type "video")
+			      ("Webpage" :keys "w"
+			       :headline "Webpage"
+			       :url-type "web")))
+		  ("Note" :keys "n"
+		   :file ak-org-slipbox-file
+		   :prepend t
+		   :headline "Notes"
+		   :type entry
+		   :template ("* %?"
+			      "%i"))))))
+#+end_src
+
 *** Org roam
 =org-roam= for capturing and linking notes.
 #+begin_src emacs-lisp
@@ -1257,12 +1299,12 @@ Centering the presentation with =visual-fill-column=.
     (setq org-roam-capture-templates
 	  '(("m" "main" plain
 	     "%?"
-	     :if-new (file+head "main/${title}.org" "#+title: ${title}\n- tags :: \n")
+	     :if-new (file+head "%(concat ak-org-main-notes-directory \"/\" \"${title}.org\")" "#+title: ${title}\n- tags :: \n")
 	     :immediate-finish t
 	     :unnarrowed t)
 	    ("r" "reference" plain
 	     "%?"
-	     :if-new (file+head "reference/${title}.org" "#+title: ${title}\n- tags :: \n")
+	     :if-new (file+head "%(concat ak-org-reference-notes-directory \"/\" \"${title}.org\")" "#+title: ${title}\n- tags :: \n")
 	     :immediate-finish t
 	     :unnarrowed t)))
     :config
@@ -1293,6 +1335,7 @@ Literature notes with =org-roam-bibtex=.
 Integration between =citar=, =org-roam= and =org-noter=.
 #+begin_src emacs-lisp
   (use-package citar-org-roam
+    :after org citar org-roam
     :config
     (defvar ak-citar-org-roam-note-header-template "- tags ::\n\n* Notes\n  :PROPERTIES:\n  :Custom_ID: ${citekey}\n  :NOTER_DOCUMENT: ${file}\n  :NOTER_PAGE: \n  :END:\n\n")
 
@@ -1372,6 +1415,22 @@ Integration between =citar=, =org-roam= and =org-noter=.
    :keymaps 'org-mode-map
    "C-o" 'ak-org-insert-item-below
    "C-O" 'ak-org-insert-item-above)
+#+end_src
+
+*** Block templates
+Easy org block templates. Type <s and =TAB= for source block.
+#+begin_src emacs-lisp
+  (require 'org-tempo)
+  (add-to-list 'org-structure-template-alist '("sh" . "src sh"))
+  (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+#+end_src
+
+*** Consult org headings
+#+begin_src emacs-lisp
+  (ak-local-leader-key-def
+   :states 'normal
+   :keymaps 'org-mode-map
+   "h" 'consult-org-heading)
 #+end_src
 
 ** Latex export
