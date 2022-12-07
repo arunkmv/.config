@@ -1065,6 +1065,53 @@ Bridge between perspective and projectile.
      "d" 'elisp-def))
 #+end_src
 
+*** LSP mode
+=lsp-mode= for using emacs as an IDE.
+#+begin_src emacs-lisp
+  (use-package lsp-mode
+    :hook
+    ((prog-mode . lsp)
+    (lsp-mode . lsp-enable-which-key-integration))
+    :commands lsp)
+
+#+end_src
+
+**** LSP UI
+#+begin_src emacs-lisp
+  (use-package lsp-ui
+    :commands lsp-ui-mode
+    :config
+    (setq lsp-ui-sideline-enable t
+	  lsp-ui-sideline-show-hover nil
+	  lsp-ui-doc-position 'bottom))
+#+end_src
+
+**** Consult integration
+#+begin_src emacs-lisp
+  (use-package consult-lsp)
+#+end_src
+
+**** Keybindings
+#+begin_src emacs-lisp
+  (ak-leader-key-def
+    "c" '(:ignore t :which-key "code")
+    "cd" 'xref-find-definitions
+    "cr" 'xref-find-references
+    "cn" 'lsp-ui-find-next-reference
+    "cp" 'lsp-ui-find-prev-reference
+    "cl" 'lsp-ui-sideline-mode
+    "cs" 'consult-lsp-symbols
+    "cS" 'consult-lsp-file-symbols
+    "cX" 'lsp-execute-code-action)
+#+end_src
+
+*** Verilog
+=svlangserver= configuration.
+#+begin_src emacs-lisp
+  ;(use-package lsp-verilog)
+(require 'lsp-verilog)
+#+end_src
+
 *** YAML mode
 #+begin_src emacs-lisp
     (use-package yaml-mode
@@ -1415,17 +1462,18 @@ Integration between =citar=, =org-roam= and =org-noter=.
 
 ** Keybindings
 #+begin_src emacs-lisp
-  (ak-local-leader-key-def
-    :states 'normal
-    :keymaps 'org-mode-map
-    "p" '(org-present :which-key "Present")
-    "e" '(org-export-dispatch :which-key "Export"))
+    (ak-local-leader-key-def
+      :states 'normal
+      :keymaps 'org-mode-map
+      "p" '(org-present :which-key "Present")
+      "e" '(org-export-dispatch :which-key "Export")
+      "s" '(org-toggle-narrow-to-subtree :which-key "Toggle subtree narrowing"))
 
-  (general-define-key
-   :states 'normal
-   :keymaps 'org-mode-map
-   "C-o" 'ak-org-insert-item-below
-   "C-O" 'ak-org-insert-item-above)
+    (general-define-key
+     :states 'normal
+     :keymaps 'org-mode-map
+     "C-o" 'ak-org-insert-item-below
+     "C-O" 'ak-org-insert-item-above)
 #+end_src
 
 *** Block templates
