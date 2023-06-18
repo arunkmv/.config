@@ -110,4 +110,16 @@
      (let (display-buffer-alist)
        (vterm vterm-buffer-name)))))
 
+;;;###autoload
+(defun ak-vterm-dir (directory)
+  "Open a terminal buffer in the current window at DIRECTORY.
+  Returns the vterm buffer."
+  (interactive "f")
+  (let ((default-directory (file-name-directory directory)))
+    (ak-vterm-configure-project-root-and-display
+     t
+     (lambda()
+       (let (display-buffer-alist)
+	 (vterm vterm-buffer-name))))))
+
 (provide 'ak-vterm)

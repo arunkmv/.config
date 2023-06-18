@@ -109,36 +109,39 @@ Use =undo-tree= for vim-like undo.
 ** Evil mode
 Vim keys in Emacs using =evil=.
 #+begin_src emacs-lisp
-  (use-package evil
-    :init
-    (setq evil-want-integration t
-	  evil-want-keybinding nil
-	  evil-want-C-i-jump nil
-	  evil-respect-visual-line-mode t
-	  evil-undo-system 'undo-tree)
-    :config
-    (evil-mode 1)
-    (setq-default
-     evil-emacs-state-tag          " E "
-     evil-normal-state-tag         " N "
-     evil-insert-state-tag         " I "
-     evil-visual-char-tag          " V "
-     evil-visual-line-tag          " VL "
-     evil-visual-screen-line-tag   " VSL "
-     evil-visual-block-tag         " VB "
-     evil-motion-state-tag         " M "
-     evil-operator-state-tag       " O "
-     evil-replace-state-tag        " R "))
+    (use-package evil
+      :init
+      (setq evil-want-integration t
+	    evil-want-keybinding nil
+	    evil-want-C-i-jump nil
+	    evil-respect-visual-line-mode t
+	    evil-undo-system 'undo-tree
+	    evil-want-minibuffer t)
+      :config
+      (evil-mode 1)
+      (setq-default
+       evil-emacs-state-tag          " E "
+       evil-normal-state-tag         " N "
+       evil-insert-state-tag         " I "
+       evil-visual-char-tag          " V "
+       evil-visual-line-tag          " VL "
+       evil-visual-screen-line-tag   " VSL "
+       evil-visual-block-tag         " VB "
+       evil-motion-state-tag         " M "
+       evil-operator-state-tag       " O "
+       evil-replace-state-tag        " R "))
 #+end_src
 
 =evil-collection= provides better evil bindings for different major modes.
 #+begin_src emacs-lisp
-(use-package evil-collection
-  :after evil
-  :init
-  (setq evil-collection-company-use-tng nil)  ;; Is this a bug in evil-collection?
-  :config
-  (evil-collection-init))
+  (use-package evil-collection
+    :after evil
+    :custom
+    (evil-collection-corfu-key-themes '(tab-n-go))
+    :init
+    (setq evil-collection-company-use-tng nil)  ;; Is this a bug in evil-collection?
+    :config
+    (evil-collection-init))
 #+end_src
 
 Use =evil-snipe= for better motion.
@@ -292,7 +295,7 @@ Keybinding to toggle fullscreen.
 Set date and time display format.
 #+begin_src emacs-lisp
   (setq display-time-day-and-date t
-	display-time-format "%a %b %d %I:%M%p"
+	display-time-format "%a %b %d %H:%M"
 	display-time-default-load-average nil)
   (when (not (bound-and-true-p display-time-mode))
     (display-time-mode))
@@ -320,9 +323,11 @@ Use =fancy-battery= for a nicer battery display
   (setq ring-bell-function 'ignore)
 #+end_src
 
-*** Silence native compilations warnings
+*** Silence warnings
 #+begin_src emacs-lisp
-(setq native-comp-async-report-warnings-errors nil)
+  (setq native-comp-async-report-warnings-errors nil)
+  (add-to-list 'warning-suppress-types '(defvaralias))
+  (add-to-list 'warning-suppress-types '(lsp-mode))
 #+end_src
 
 ** Dashboard
@@ -350,7 +355,6 @@ Trying out =modus-themes=.
     (setq modus-themes-italic-constructs t
 	  modus-themes-bold-constructs t
 	  modus-themes-mixed-fonts t
-;; comment
 	  modus-themes-syntax '(green-strings yellow-comments)
 	  modus-themes-prompts '(bold intense)
 	  modus-themes-completions
@@ -358,14 +362,87 @@ Trying out =modus-themes=.
 	    (selection . (semibold accented))
 	    (popup . (extrabold)))
 	  modus-themes-headings
-	  '((0 . (background rainbow 2.2))
-	    (1 . (background overline rainbow 1.25))
-	    (2 . (background rainbow 1.1))
-	    (3 . (background rainbow 1.05))
-	    (t . (rainbow))))
-    (modus-themes-load-themes)
+	  '((0 . (rainbow 2.2))
+	    (1 . (rainbow 1.25))
+	    (2 . (rainbow 1.1))
+	    (3 . (rainbow 1.05))
+	    (t . (rainbow)))
+	  modus-themes-common-palette-overrides '((bg-region bg-cyan-intense)
+
+						  (bg-completion       bg-cyan-subtle)
+						  (bg-hover            bg-yellow-intense)
+						  (bg-hover-secondary  bg-magenta-intense)
+						  (bg-hl-line          bg-dim)
+
+						  (bg-mode-line-active      bg-inactive)
+						  (fg-mode-line-active      fg-main)
+						  (border-mode-line-active  blue-intense)
+
+						  (fringe bg-inactive)
+						  (comment fg-dim)
+						  (name magenta-cooler)
+
+						  (date-common cyan)
+						  (date-deadline red)
+						  (date-event blue)
+						  (date-holiday magenta-warmer)
+						  (date-now blue-faint)
+						  (date-scheduled yellow-warmer)
+						  (date-weekday fg-main)
+						  (date-weekend red-faint)
+
+						  (keybind blue-intense)
+
+						  (mail-cite-0 blue)
+						  (mail-cite-1 yellow)
+						  (mail-cite-2 green)
+						  (mail-cite-3 magenta)
+						  (mail-part magenta-cooler)
+						  (mail-recipient cyan)
+						  (mail-subject red-warmer)
+						  (mail-other cyan-cooler)
+
+						  (fg-prompt blue-intense)
+
+						  (prose-block fg-dim)
+						  (prose-done green-intense)
+						  (prose-metadata cyan-faint)
+						  (prose-metadata-value blue-cooler)
+						  (prose-table cyan)
+						  (prose-todo red-intense)
+
+						  (fg-heading-0 blue-cooler)
+						  (fg-heading-1 magenta-cooler)
+						  (fg-heading-2 magenta-warmer)
+						  (fg-heading-3 blue)
+						  (fg-heading-4 cyan)
+						  (fg-heading-5 green-warmer)
+						  (fg-heading-6 yellow)
+						  (fg-heading-7 red)
+						  (fg-heading-8 magenta)
+
+						  (bg-heading-0 unspecified)
+						  (bg-heading-1 bg-magenta-nuanced)
+						  (bg-heading-2 bg-red-nuanced)
+						  (bg-heading-3 bg-blue-nuanced)
+						  (bg-heading-4 bg-cyan-nuanced)
+						  (bg-heading-5 bg-green-nuanced)
+						  (bg-heading-6 bg-yellow-nuanced)
+						  (bg-heading-7 bg-red-nuanced)
+						  (bg-heading-8 bg-magenta-nuanced)
+
+						  (overline-heading-0 unspecified)
+						  (overline-heading-1 magenta-cooler)
+						  (overline-heading-2 magenta-warmer)
+						  (overline-heading-3 blue)
+						  (overline-heading-4 cyan)
+						  (overline-heading-5 green)
+						  (overline-heading-6 yellow-cooler)
+						  (overline-heading-7 red-cooler)
+						  (overline-heading-8 magenta))
+	  )
     :config
-    (modus-themes-load-vivendi))
+    (load-theme 'modus-vivendi :no-confirm))
 
   (ak-leader-key-def
     "tt" '(modus-themes-toggle :which-key "Modus themes"))
@@ -390,27 +467,34 @@ Setup and configure =doom-modeline=.
 
 Remove doom-modeline time and battery hooks to display battery status in tab bar.
 #+begin_src emacs-lisp
-    (remove-hook 'display-time-mode-hook 'doom-modeline-override-display-time-modeline)
-    (remove-hook 'display-battery-mode-hook 'doom-modeline-override-battery-modeline)
-    (remove-hook 'doom-modeline-mode-hook 'doom-modeline-override-display-time-modeline)
-    (remove-hook 'doom-modeline-mode-hook 'doom-modeline-override-battery-modeline))
+	  (remove-hook 'display-time-mode-hook 'doom-modeline-override-time)
+	  (remove-hook 'display-battery-mode-hook 'doom-modeline-override-battery)
+	  (remove-hook 'doom-modeline-mode-hook 'doom-modeline-override-time)
+	  (remove-hook 'doom-modeline-mode-hook 'doom-modeline-override-battery)
+
+  (defun ak-doom-modeline-override-time-advice ()
+    global-mode-string)
+
+    (advice-add 'doom-modeline-override-time :override #'ak-doom-modeline-override-time-advice))
+
 #+end_src
 
-Change faces of modeline evil indicators.
+Change modeline faces.
 #+begin_src emacs-lisp
-  (defun ak-doom-modeline-evil-indicator-set-colors-h ()
-    (modus-themes-with-colors
-      (custom-set-faces
-       `(doom-modeline-evil-emacs-state ((,class :background ,magenta :foreground ,bg-main)))
-       `(doom-modeline-evil-normal-state ((,class :background ,green :foreground ,bg-main)))
-       `(doom-modeline-evil-insert-state ((,class :background ,blue :foreground ,bg-main)))
-       `(doom-modeline-evil-visual-state ((,class :background ,orange-intense :foreground ,bg-main)))
-       `(doom-modeline-evil-motion-state ((,class :background ,red-intense :foreground ,bg-main)))
-       `(doom-modeline-evil-operator-state ((,class :background ,yellow-intense :foreground ,bg-main)))
-       `(doom-modeline-evil-replace-state ((,class :background ,magenta-intense :foreground ,bg-main))))))
+      (defun ak-doom-modeline-set-faces-h ()
+	(modus-themes-with-colors
+	  (custom-set-faces
+	   `(doom-modeline-evil-emacs-state ((,c :inherit bold :background ,magenta :foreground ,bg-main)))
+	   `(doom-modeline-evil-normal-state ((,c :inherit bold :background ,green :foreground ,bg-main)))
+	   `(doom-modeline-evil-insert-state ((,c :inherit bold :background ,blue :foreground ,bg-main)))
+	   `(doom-modeline-evil-visual-state ((,c :inherit bold :background ,rust :foreground ,bg-main)))
+	   `(doom-modeline-evil-motion-state ((,c :inherit bold :background ,red-intense :foreground ,bg-main)))
+	   `(doom-modeline-evil-operator-state ((,c :inherit bold :background ,yellow-intense :foreground ,bg-main)))
+	   `(doom-modeline-evil-replace-state ((,c :inherit bold :background ,magenta-intense :foreground ,bg-main)))
+	   `(doom-modeline-buffer-modified ((,c :inherit bold :foreground ,magenta-cooler))))))
 
-  (add-hook 'doom-modeline-mode-hook 'ak-doom-modeline-evil-indicator-set-colors-h)
-  (add-hook 'modus-themes-after-load-theme-hook 'ak-doom-modeline-evil-indicator-set-colors-h)
+      (add-hook 'doom-modeline-mode-hook 'ak-doom-modeline-set-faces-h)
+      (add-hook 'modus-themes-after-load-theme-hook 'ak-doom-modeline-set-faces-h)
 #+end_src
 
 *** Hide modeline
@@ -437,6 +521,7 @@ Properly format global mode string as it is used by the tab bar.
     (setq global-mode-string '("" (:eval (persp-mode-line)) " | " (:eval (propertize display-time-string 'face 'ak-display-time)) "| " fancy-battery-mode-line " |")))
 
   (add-hook 'after-init-hook #'ak-format-global-mode-string)
+  (add-hook 'doom-modeline-mode-hook #'ak-format-global-mode-string)
 #+end_src
 
 *** Toggle tab bar
@@ -471,21 +556,33 @@ Customize cursor color.
   (defun ak-cursor-color-set-color-h ()
     (modus-themes-with-colors
       (custom-set-faces
-       `(cursor ((,class :background ,magenta-intense))))))
+       `(cursor ((,c :background ,magenta-intense))))))
 
+  (add-hook 'after-init-hook #'ak-cursor-color-set-color-h)
   (add-hook 'modus-themes-after-load-theme-hook #'ak-cursor-color-set-color-h)
 #+end_src
 
 *** Highlight cursor
 =pulsar= to highlight cursor location.
 #+begin_src emacs-lisp
-  (use-package pulsar
-    :config
-    (setq pulsar-pulse-on-window-change t
-	  pulsar-delay 0.06
-	  pulsar-iterations 10
-	  pulsar-face 'pulsar-generic)
-    (pulsar-global-mode))
+	(use-package pulsar
+	  :config
+	  (setq pulsar-delay 0.06
+		pulsar-iterations 10
+		pulsar-face 'pulsar-generic)
+	  (dolist (evil-window-function
+		   '(evil-scroll-down
+		     evil-scroll-up
+		     evil-window-up
+		     evil-window-left
+		     evil-window-right
+		     evil-window-down
+		     evil-window-move-far-right
+		     evil-window-move-far-left
+		     evil-window-move-very-top
+		     evil-window-move-very-bottom))
+	    (add-to-list 'pulsar-pulse-functions evil-window-function))
+	  (pulsar-global-mode))
 #+end_src
 
 ** Hightlight line
@@ -558,12 +655,6 @@ A streamlined minimal and performant completion with =vertico.el=
 #+begin_src emacs-lisp
   (use-package vertico
     :ensure t
-    :bind (:map vertico-map
-	   ("C-j" . vertico-next)
-	   ("C-k" . vertico-previous)
-	   ("M-RET" . vertico-exit-input)
-	   :map minibuffer-local-map
-	   ("M-h" . backward-kill-word))
     :custom
     (vertico-cycle t)
     :init
@@ -577,6 +668,16 @@ Persist minibuffer history over Emacs restarts with =savehist=.
 (use-package savehist
   :init
   (savehist-mode))
+#+end_src
+
+*** Keybindings
+#+begin_src emacs-lisp
+  (general-define-key
+   :states '(normal insert)
+   :keymaps 'vertico-map
+   "C-j" 'vertico-next
+   "C-k" 'vertico-previous
+   "M-RET" 'vertico-exit-input)
 #+end_src
 
 ** Marginalia
@@ -1050,6 +1151,14 @@ Bridge between perspective and projectile.
     :hook ((org-mode prog-mode) . rainbow-delimiters-mode))
 #+end_src
 
+*** Highlight indent guides
+#+begin_src emacs-lisp
+  (use-package highlight-indent-guides
+    :config
+    (setq highlight-indent-guides-method 'column)
+    (add-hook 'prog-mode-hook 'highlight-indent-guides-mode))
+#+end_src
+
 *** Emacs Lisp
 **** Elisp def
 #+begin_src emacs-lisp
@@ -1097,6 +1206,7 @@ Bridge between perspective and projectile.
     "c" '(:ignore t :which-key "code")
     "cd" 'xref-find-definitions
     "cr" 'xref-find-references
+    "cf" 'lsp-format-buffer
     "cn" 'lsp-ui-find-next-reference
     "cp" 'lsp-ui-find-prev-reference
     "cl" 'lsp-ui-sideline-mode
@@ -1106,10 +1216,106 @@ Bridge between perspective and projectile.
 #+end_src
 
 *** Verilog
-=svlangserver= configuration.
+Trying =verible-ls= out
 #+begin_src emacs-lisp
-  ;(use-package lsp-verilog)
-(require 'lsp-verilog)
+(add-to-list 'lsp-language-id-configuration '(verilog-mode . "verilog"))
+(lsp-register-client
+ (make-lsp-client :new-connection (lsp-stdio-connection "verible-verilog-ls")
+                  :major-modes '(verilog-mode)
+                  :server-id 'verible-ls))
+
+(add-hook 'verilog-mode-hook 'lsp)
+#+end_src
+
+**** Remote LSP support
+#+begin_src emacs-lisp
+  (lsp-register-client
+   (make-lsp-client :new-connection (lsp-tramp-connection "verible-verilog-ls")
+		    :major-modes '(verilog-mode)
+		    :remote? t
+		    :priority 3
+		    :server-id 'verible-ls-remote))
+#+end_src
+
+**** Completion in =verilog-mode=
+Bind TAB to =completion-at-point= in insert mode. =verilog-mode= binds it to =electric-verilog-tab=.
+#+begin_src emacs-lisp
+  (use-package verilog-mode
+    :straight (:type built-in)
+    :config
+    (setq verilog-auto-newline nil)
+    (general-define-key
+     :keymaps 'verilog-mode-map
+     [remap electric-verilog-tab] 'completion-at-point))
+#+end_src
+
+
+*** C/C++
+**** Remote LSP support
+#+begin_src emacs-lisp
+  (lsp-register-client
+   (make-lsp-client :new-connection (lsp-tramp-connection "clangd")
+		    :major-modes '(c-mode c++-mode)
+		    :remote? t
+		    :priority 3
+		    :server-id 'clangd-ls-remote))
+#+end_src
+
+**** Remote LSP support
+
+**** Completion in =cc-mode=
+Bind TAB to =completion-at-point= in insert mode. =cc-mode= binds it to =c-indent-line-or-region=.
+#+begin_src emacs-lisp
+  (use-package cc-mode
+    :straight (:type built-in)
+    :config
+    (general-define-key
+     :keymaps 'c-mode-base-map
+     [remap c-indent-line-or-region] 'completion-at-point))
+#+end_src
+
+*** Scala
+=scala-mode= for Scala highlighting and indentation.
+#+begin_src emacs-lisp
+  (use-package scala-mode
+    :interpreter ("scala" . scala-mode)
+    :config
+    (add-hook 'scala-mode-hook
+	      (lambda ()
+		(add-hook 'before-save-hook 'lsp-format-buffer nil 'make-it-local))))
+#+end_src
+
+**** LSP support
+Add metals backend for lsp-mode.
+#+begin_src emacs-lisp
+(use-package lsp-metals)
+#+end_src
+
+**** SBT mode
+=sbt-mode= for executing sbt commands.
+#+begin_src emacs-lisp
+  (use-package sbt-mode
+    :commands sbt-start sbt-command
+    :config
+    ;; WORKAROUND: https://github.com/ensime/emacs-sbt-mode/issues/31
+    ;; allows using SPACE when in the minibuffer
+    (substitute-key-definition
+     'minibuffer-complete-word
+     'self-insert-command
+     minibuffer-local-completion-map)
+    ;; sbt-supershell kills sbt-mode:  https://github.com/hvesalai/emacs-sbt-mode/issues/152
+    (setq sbt:program-options '("-Dsbt.supershell=false"))
+
+    (defun ak/sbt-toggle()
+      "Toggle sbt buffer popup window or create a new one if none exists."
+      (interactive)
+      (let* ((project-root (or (sbt:find-root)
+			       (error "Could not find project root, type `C-h f sbt:find-root` for help.")))
+	     (buffer-name (sbt:buffer-name))
+	     (window (get-buffer-window buffer-name)))
+	(if-let (win (get-buffer-window buffer-name))
+	    (delete-window win)
+	  (sbt-start)))))
 #+end_src
 
 *** YAML mode
@@ -1125,8 +1331,14 @@ Bridge between perspective and projectile.
     :straight nil
     :config
     (setq auto-mode-alist (cons  '("\\.xdc\\'" . vivado-mode) auto-mode-alist))
-    (add-hook 'vivado-mode-hook '(lambda () (font-lock-mode 1)))
+    (add-hook 'vivado-mode-hook #'(lambda () (font-lock-mode 1)))
     (autoload 'vivado-mode "vivado-mode"))
+#+end_src
+
+*** Racket mode
+Giving racket a try.
+#+begin_src emacs-lisp
+(use-package racket-mode)
 #+end_src
 
 * Org Mode
@@ -1159,7 +1371,7 @@ Flashcards with =org-fc=.
 	    (use-package org-fc
 	      :straight
 	      (org-fc
-	       :type git :repo "https://git.sr.ht/~l3kn/org-fc"
+	       :type git :host github :repo "l3kn/org-fc"
 	       :files (:defaults "awk" "demo.org"))
 	      :after (hydra org)
 	      :custom (org-fc-directories '("~/Org/fc"))
@@ -1438,7 +1650,7 @@ Integration between =citar=, =org-roam= and =org-noter=.
 =org-noter= for taking literature notes.
 #+begin_src emacs-lisp
   (use-package org-noter
-    :after org
+    :after org pdf-tools
     :config
     (setq org-noter-notes-window-location 'vertical-split
 	  org-noter-doc-split-fraction '(0.2 . 0.8)
@@ -1679,9 +1891,13 @@ Better terminal emulation with =vterm=.
     "oT" 'ak-vterm-here)
 
   (ak-local-leader-key-def
-   :states 'normal
-   :keymaps 'vterm-mode-map
-   "s" 'ak-vterm-consult-zsh-history)
+    :states 'normal
+    :keymaps 'vterm-mode-map
+    "s" 'ak-vterm-consult-zsh-history)
+
+  (general-define-key
+   :keymaps 'embark-file-map
+   "t" 'ak-vterm-dir)
 #+end_src
 
 ** Eshell
@@ -1697,6 +1913,16 @@ Writing latex documents with =auctex=.
       (add-to-list 'TeX-view-program-list '("PDF Tools" TeX-pdf-tools-sync-view)))
     ;; Update PDF buffers after successful LaTeX compilation
     (remove-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer))
+#+end_src
+
+** TRAMP
+Configurations for =TRAMP=.
+#+begin_src emacs-lisp
+  (use-package tramp
+    :straight tramp
+    :config
+    (add-to-list 'tramp-remote-path 'tramp-own-remote-path)
+    (setq inhibit-eol-conversion t))
 #+end_src
 
 * TODOs
