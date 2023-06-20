@@ -1274,6 +1274,11 @@ Bind TAB to =completion-at-point= in insert mode. =cc-mode= binds it to =c-inden
      [remap c-indent-line-or-region] 'completion-at-point))
 #+end_src
 
+**** CMake mode
+#+begin_src emacs-lisp
+(use-package cmake-mode)
+#+end_src
+
 *** Scala
 =scala-mode= for Scala highlighting and indentation.
 #+begin_src emacs-lisp
