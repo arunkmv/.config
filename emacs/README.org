@@ -96,6 +96,17 @@ No littering
 (add-to-list 'load-path (concat user-emacs-directory "lisp/"))
 #+end_src
 
+** MacOS environment
+Using =exec-path-from-shell= for proper emacs environment.
+#+begin_src emacs-lisp
+  (when ak-is-mac
+    (use-package exec-path-from-shell
+      :init
+      (setq exec-path-from-shell-arguments '("-l"))
+      (exec-path-from-shell-initialize)))
+#+end_src
+
+#+end_src
 * Keybindings
 Core configurations for keybindings.
 ** Undo tree
@@ -659,7 +670,24 @@ A streamlined minimal and performant completion with =vertico.el=
     (vertico-cycle t)
     :init
     (setq vertico-resize nil)
-    (vertico-mode))
+    (vertico-mode)
+    ;; This works with `file-name-shadow-mode' enabled.  When you are in
+    ;; a sub-directory and use, say, `find-file' to go to your home '~/'
+    ;; or root '/' directory, Vertico will clear the old path to keep
+    ;; only your current input.
+    (add-hook 'rfn-eshadow-update-overlay-hook #'vertico-directory-tidy)
+    )
+#+end_src
+
+*** filename-shadow-mode
+#+begin_src emacs-lisp
+;; When you first call `find-file' (C-x C-f by default), you do not
+;; need to clear the existing file path before adding the new one.
+;; Just start typing the whole path and Emacs will "shadow" the
+;; current one.  For example, you are at ~/Documents/notes/file.txt
+;; and you want to go to ~/.emacs.d/init.el: type the latter directly
+;; and Emacs will take you there.
+(file-name-shadow-mode 1)
 #+end_src
 
 *** Savehist
@@ -1144,6 +1172,12 @@ Bridge between perspective and projectile.
     "pX" '(scratchy-switch-to-project-scratch-buffer :which-key "Switch to project scratch buffer"))
 #+end_src
 
+** Flycheck
+#+begin_src emacs-lisp
+  (use-package flycheck
+    :hook (prog-mode . flycheck-mode))
+#+end_src
+
 ** Prog mode
 *** Rainbow delimiters
 #+begin_src emacs-lisp
@@ -1249,7 +1283,6 @@ Bind TAB to =completion-at-point= in insert mode. =verilog-mode= binds it to =el
      [remap electric-verilog-tab] 'completion-at-point))
 #+end_src
 
-
 *** C/C++
 **** Remote LSP support
 #+begin_src emacs-lisp
@@ -1260,8 +1293,6 @@ Bind TAB to =completion-at-point= in insert mode. =verilog-mode= binds it to =el
 		    :priority 3
 		    :server-id 'clangd-ls-remote))
 #+end_src
-
-**** Remote LSP support
 
 **** Completion in =cc-mode=
 Bind TAB to =completion-at-point= in insert mode. =cc-mode= binds it to =c-indent-line-or-region=.
@@ -1277,6 +1308,15 @@ Bind TAB to =completion-at-point= in insert mode. =cc-mode= binds it to =c-inden
 **** CMake mode
 #+begin_src emacs-lisp
 (use-package cmake-mode)
+#+end_src
+
+**** Flycheck clang-tidy
+#+begin_src emacs-lisp
+(use-package flycheck-clang-tidy
+  :after flycheck
+  :hook
+  (flycheck-mode . flycheck-clang-tidy-setup)
+  )
 #+end_src
 
 *** Scala
@@ -1740,8 +1780,24 @@ Configure =org-cite=.
 Configurations for various tools and packages.
 ** Dired
 #+begin_src emacs-lisp
- 
+
 #+end_src
+
+*** Trash
+#+begin_src emacs-lisp
+ ;; Do not outright delete files.  Move them to the system trash
+;; instead.  The `trashed' package can act on them in a Dired-like
+;; fashion.  I use it and can recommend it to either restore (R) or
+;; permanently delete (D) the files.
+(setq delete-by-moving-to-trash t)
+#+end_src
+
+*** Nerd icons dired 
+#+begin_src emacs-lisp
+(use-package nerd-icons-dired
+  :hook
+  (dired-mode . nerd-icons-dired-mode))
+  #+end_src
 
 ** Helpful
 Better help buffers with =helpful=.
@@ -1933,4 +1989,5 @@ Configurations for =TRAMP=.
 * TODOs
 - Use doom emacs strategy with [[https://gitlab.com/koral/gcmh/][gcmh-mode]]
 - Custom splash screen with vertical centering and theme appropriate fancy splash image 
+- Use project.el instead of projectile
   
