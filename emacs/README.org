@@ -18,16 +18,16 @@ Turn on lexical binding in init.el
 
 Reduce garbage collection frequency for faster startup and use a hook to measure Emacs startup time.
 #+begin_src emacs-lisp
-(setq gc-cons-threshold (* 50 1000 1000))
+  (setq gc-cons-threshold (* 50 1000 1000))
 
-;; Profile emacs startup
-(add-hook 'emacs-startup-hook
-          (lambda ()
-            (message "*** Emacs loaded in %s with %d garbage collections."
-                     (format "%.2f seconds"
-                             (float-time
-                              (time-subtract after-init-time before-init-time)))
-                     gcs-done)))
+  ;; Profile emacs startup
+  (add-hook 'emacs-startup-hook
+	    (lambda ()
+	      (message "*** Emacs loaded in %s with %d garbage collections."
+		       (format "%.2f seconds"
+			       (float-time
+				(time-subtract after-init-time before-init-time)))
+		       gcs-done)))
 #+end_src
 
 ** MacOS
@@ -112,9 +112,10 @@ Core configurations for keybindings.
 ** Undo tree
 Use =undo-tree= for vim-like undo.
 #+begin_src emacs-lisp
-(use-package undo-tree
-  :init
-  (global-undo-tree-mode 1))
+  (use-package undo-tree
+    :init
+    (global-undo-tree-mode 1)
+    (setq undo-tree-history-directory-alist `(("." . ,(concat ak-var-dir "undo-tree-hist/")))))
 #+end_src
 
 ** Evil mode
@@ -278,6 +279,11 @@ Use =all-the-icons=.
   :if (display-graphic-p))
 #+end_src
 
+Use =nerd-icons=.
+#+begin_src emacs-lisp
+(use-package nerd-icons)
+#+end_src
+
 ** Clean up Emacs UI
 #+begin_src emacs-lisp
   (setq inhibit-startup-message t)
@@ -336,10 +342,20 @@ Use =fancy-battery= for a nicer battery display
 
 *** Silence warnings
 #+begin_src emacs-lisp
-  (setq native-comp-async-report-warnings-errors nil)
-  (add-to-list 'warning-suppress-types '(defvaralias))
-  (add-to-list 'warning-suppress-types '(lsp-mode))
+    (use-package warnings
+      :config
+      (setq native-comp-async-report-warnings-errors nil)
+      (add-to-list 'warning-suppress-types 'defvaralias)
+      (add-to-list 'warning-suppress-types 'lsp-mode))
+
+  (setq byte-compile-warnings '(cl-functions))
 #+end_src
+
+*** Supress invalid image error
+#+begin_src emacs-lisp
+  (add-to-list 'image-types 'svg)
+  (add-to-list 'image-types 'gif)
+  #+end_src
 
 ** Dashboard
 Setup a minimal dashboard
@@ -355,7 +371,7 @@ Setup a minimal dashboard
 	  dashboard-show-shortcuts nil
 	  dashboard-items '()
 	  initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
-    (dashboard-insert-startupify-lists))
+    (add-hook 'after-init-hook 'dashboard-insert-startupify-lists))
 #+end_src
 
 ** Theme
@@ -462,18 +478,20 @@ Trying out =modus-themes=.
 ** Modeline
 Setup and configure =doom-modeline=.
 #+begin_src emacs-lisp
-    (use-package doom-modeline
-      :ensure t
-      :straight (doom-modeline :type git :host github :repo "seagle0128/doom-modeline")
-      :after (modus-themes)
-      :hook (after-init . doom-modeline-mode)
-      :config
-      (setq doom-modeline-buffer-encoding nil
-	    doom-modeline-major-mode-icon t
-	    doom-modeline-modal-icon nil
-	    doom-modeline-time nil)
-      ;; Show text column number in modeline
-      (column-number-mode)
+  (use-package doom-modeline
+    :ensure t
+    :straight (doom-modeline :type git :host github :repo "seagle0128/doom-modeline")
+    :after (modus-themes)
+    :hook (after-init . doom-modeline-mode)
+    :config
+    (setq doom-modeline-buffer-encoding nil
+	  doom-modeline-major-mode-icon t
+	  doom-modeline-modal-icon nil
+	  doom-modeline-time nil
+	  doom-modeline-height 30
+	  )
+    ;; Show text column number in modeline
+    (column-number-mode)
 #+end_src
 
 Remove doom-modeline time and battery hooks to display battery status in tab bar.
@@ -790,14 +808,14 @@ Adding cape for additional completion-at-point functions.
       (add-to-list 'completion-at-point-functions backend)))
 #+end_src
 
-** All the icons completion
+** Nerd icons completion
 #+begin_src emacs-lisp
-  (use-package all-the-icons-completion
-    :after (marginalia all-the-icons)
-    :hook (marginalia-mode . all-the-icons-completion-marginalia-setup)
-    :init
-    (all-the-icons-completion-mode))
-#+end_src
+(use-package nerd-icons-completion
+  :after marginalia
+  :config
+  (nerd-icons-completion-mode)
+  (add-hook 'marginalia-mode-hook #'nerd-icons-completion-marginalia-setup))
+  #+end_src
 
 ** Bibliography management
 #+begin_src emacs-lisp
@@ -823,11 +841,30 @@ Adding cape for additional completion-at-point functions.
 	    (suffix . "          ${=key= id:15}    ${=type=:12}    ${tags keywords:*}")
 	    (preview . "${author editor} (${year issued date}) ${title}, ${journal journaltitle publisher container-title collection-title}.\n")
 	    (note . "${title}")))
-    (with-eval-after-load 'all-the-icons
-      (setq citar-symbols
-	    `((file ,(all-the-icons-octicon "file-pdf" :face 'all-the-icons-red :v-adjust -0.1) . " ")
-	      (note ,(all-the-icons-fileicon "org" :face 'all-the-icons-green :v-adjust -0.3) . " ")
-	      (link ,(all-the-icons-octicon "link" :face 'all-the-icons-orange :v-adjust 0.01) . " "))))
+
+    (defvar ak-citar-indicator-files
+      (citar-indicator-create
+       :symbol (nerd-icons-icon-for-extension "pdf" :face 'nerd-icons-red :v-adjust -0.1)
+       :function #'citar-has-files
+       :tag "has:files"))
+
+    (defvar ak-citar-indicator-notes
+      (citar-indicator-create
+       :symbol (nerd-icons-icon-for-extension "org" :face 'nerd-icons-lgreen :v-adjust -0.1)
+       :function #'citar-has-notes
+       :tag "has:notes"))
+
+    (defvar ak-citar-indicator-links
+      (citar-indicator-create
+       :symbol (nerd-icons-octicon "nf-oct-link" :face 'nerd-icons-blue :v-adjust 0.01)
+       :function #'citar-has-links
+       :tag "has:links"))
+
+    (setq citar-indicators
+	  (list ak-citar-indicator-files
+		ak-citar-indicator-notes
+		ak-citar-indicator-links))
+
     (setq citar-symbol-separator "  "))
 #+end_src
 
@@ -1141,14 +1178,14 @@ Working on projects with =projectile=.
 
 #+end_src
 
-*** Perspective integration
+**** Perspective integration
 Bridge between perspective and projectile.
 #+begin_src emacs-lisp
   (use-package persp-projectile
     :straight (persp-projectile :type git :host github :repo "bbatsov/persp-projectile" :branch "master"))
 #+end_src
 
-*** Consult projectile
+**** Consult projectile
 #+begin_src emacs-lisp
     (use-package consult-projectile
       :straight (consult-projectile :type git :host gitlab :repo "OlMon/consult-projectile" :branch "master")
@@ -1156,7 +1193,7 @@ Bridge between perspective and projectile.
       (setq consult-projectile-source-projectile-project-action #'projectile-persp-switch-project))
 #+end_src
 
-*** Keybindings
+**** Keybindings
 #+begin_src emacs-lisp
   (general-define-key
    :keymaps 'projectile-mode-map
@@ -1170,6 +1207,13 @@ Bridge between perspective and projectile.
     "pa" '(projectile-add-known-project :which-key "Add to known projects")
     "px" '(scratchy-open-project-scratch-buffer :which-key "Open project scratch buffer")
     "pX" '(scratchy-switch-to-project-scratch-buffer :which-key "Switch to project scratch buffer"))
+#+end_src
+*** Project.el
+#+begin_src emacs-lisp
+  (use-package project
+    :straight (:type built-in)
+
+    )
 #+end_src
 
 ** Flycheck
@@ -1719,18 +1763,18 @@ Integration between =citar=, =org-roam= and =org-noter=.
 
 ** Keybindings
 #+begin_src emacs-lisp
-    (ak-local-leader-key-def
-      :states 'normal
-      :keymaps 'org-mode-map
-      "p" '(org-present :which-key "Present")
-      "e" '(org-export-dispatch :which-key "Export")
-      "s" '(org-toggle-narrow-to-subtree :which-key "Toggle subtree narrowing"))
+  (ak-local-leader-key-def
+    :states 'normal
+    :keymaps 'org-mode-map
+    "p" '(org-present :which-key "Present")
+    "e" '(org-export-dispatch :which-key "Export")
+    "s" '(org-toggle-narrow-to-subtree :which-key "Toggle subtree narrowing"))
 
-    (general-define-key
-     :states 'normal
-     :keymaps 'org-mode-map
-     "C-o" 'ak-org-insert-item-below
-     "C-O" 'ak-org-insert-item-above)
+  (general-define-key
+   :states 'normal
+   :keymaps 'org-mode-map
+   "C-o" 'ak-org-insert-item-below
+   "C-O" 'ak-org-insert-item-above)
 #+end_src
 
 *** Block templates
@@ -1780,7 +1824,11 @@ Configure =org-cite=.
 Configurations for various tools and packages.
 ** Dired
 #+begin_src emacs-lisp
-
+  (use-package dired
+    :straight (:type built-in)
+    :config
+    (ak-leader-key-def
+      "od" '(dired-jump :which-key "Dired")))
 #+end_src
 
 *** Trash
@@ -1792,12 +1840,28 @@ Configurations for various tools and packages.
 (setq delete-by-moving-to-trash t)
 #+end_src
 
-*** Nerd icons dired 
+*** Nerd icons
 #+begin_src emacs-lisp
 (use-package nerd-icons-dired
   :hook
   (dired-mode . nerd-icons-dired-mode))
   #+end_src
+
+** Treemacs
+#+begin_src emacs-lisp
+  (use-package treemacs
+    :config
+    (ak-leader-key-def
+      "ov" '(treemacs :which-key "Dired"))
+    )
+#+end_src
+
+*** Nerd icons
+#+begin_src emacs-lisp
+(use-package treemacs-nerd-icons
+  :config
+  (treemacs-load-theme "nerd-icons"))
+#+end_src
 
 ** Helpful
 Better help buffers with =helpful=.
@@ -1948,13 +2012,13 @@ Better terminal emulation with =vterm=.
 *** Keybindings
 #+begin_src emacs-lisp
   (ak-leader-key-def
-    "ot" 'ak-vterm-toggle
-    "oT" 'ak-vterm-here)
+    "ot" '(ak-vterm-toggle :which-key "Vterm toggle")
+    "oT" '(ak-vterm-here :which-key "Vterm here"))
 
   (ak-local-leader-key-def
     :states 'normal
     :keymaps 'vterm-mode-map
-    "s" 'ak-vterm-consult-zsh-history)
+    "s" '(ak-vterm-consult-zsh-history :which-key "ZSH history"))
 
   (general-define-key
    :keymaps 'embark-file-map
@@ -1980,7 +2044,7 @@ Writing latex documents with =auctex=.
 Configurations for =TRAMP=.
 #+begin_src emacs-lisp
   (use-package tramp
-    :straight tramp
+    :straight (:type built-in)
     :config
     (add-to-list 'tramp-remote-path 'tramp-own-remote-path)
     (setq inhibit-eol-conversion t))
