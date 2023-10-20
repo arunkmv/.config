@@ -8,7 +8,7 @@
 ;;
 ;;; Code:
 
-(require 'projectile)
+(require 'project)
 
 (defvar scratchy-default-file "__default"
   "The default file name for a project-less scratch buffer.
@@ -126,8 +126,7 @@ If passed the prefix ARG, do not restore the last scratch buffer.
 If PROJECT-P is non-nil, open a persistent scratch buffer associated with the
   current project."
   (interactive "P")
-  (let (projectile-enable-caching
-	(project-root (and project-p (projectile-project-root))))
+  (let ((p (and project-p (project-name (project-current)))))
     (funcall
      (if same-window-p
 	 #'switch-to-buffer
@@ -144,10 +143,9 @@ If PROJECT-P is non-nil, open a persistent scratch buffer associated with the
 	    ((symbolp scratchy-initial-major-mode)
 	     scratchy-initial-major-mode))
       default-directory
-      (when project-root
-	    (funcall projectile-project-name-function project-root))))
-    (if (and project-p (not project-root))
-      (message "Current buffer is not associated with any known projects! Opened the default scratch buffer."))))
+      p))
+    (if (and project-p (not p))
+	(message "Current buffer is not associated with any known projects! Opened the default scratch buffer."))))
 
 ;;;###autoload
 (defun scratchy-switch-to-scratch-buffer (&optional arg project-p)

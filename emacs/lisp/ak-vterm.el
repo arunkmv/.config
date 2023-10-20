@@ -1,4 +1,5 @@
 (require 'vterm)
+(require 'project)
 
 (defcustom ak-vterm-consult-zsh-history-file "~/.config/zsh/.zsh_history"
   "File containing zsh history."
@@ -58,7 +59,7 @@
     Returns the vterm buffer."
   (unless (fboundp 'module-load)
     (user-error "Your build of Emacs lacks dynamic modules support and cannot load vterm"))
-  (let* ((project-root (or (ak-project-root) default-directory))
+  (let* ((project-root (or (project-root) default-directory))
 	 (default-directory
 	  (if arg
 	      default-directory

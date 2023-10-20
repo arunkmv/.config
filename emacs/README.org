@@ -1078,7 +1078,7 @@ Conveniently save and load perspectives.
 ** Scratch buffer
 Require custom scratch buffer utility.
 #+begin_src emacs-lisp
-  (with-eval-after-load 'projectile
+  (with-eval-after-load 'project
     (require 'scratchy)
     (setq scratchy-dir (expand-file-name "scratch" ak-etc-dir)))
 #+end_src
@@ -1149,71 +1149,38 @@ Markdown for easy documents.
   :init (setq markdown-command "multimarkdown"))
 #+end_src
 
-** Projects
-*** Projectile
-Working on projects with =projectile=.
-#+begin_src emacs-lisp
-    (use-package projectile
-      :init
-      (when (file-directory-p "~/Projects")
-	(setq projectile-project-search-path '("~/Projects")
-	      projectile-track-known-projects-automatically nil))
-      :config
-      (defun ak-project-root (&optional dir)
-	"Return the project root of DIR (defaults to `default-directory').
-	    Returns nil if not in a project."
-	(let ((projectile-project-root
-	       (unless dir (bound-and-true-p projectile-project-root)))
-	      projectile-require-project-root)
-	  (projectile-project-root dir)))
-
-      (defun ak-project-name (&optional dir)
-	"Return the name of the current project.
-    Returns '-' if not in a valid project."
-	(if-let (project-root (or (ak-project-root dir)
-				  (if dir (expand-file-name dir))))
-	    (funcall projectile-project-name-function project-root)
-	  "-"))
-      (projectile-mode))
-
-#+end_src
-
-**** Perspective integration
-Bridge between perspective and projectile.
-#+begin_src emacs-lisp
-  (use-package persp-projectile
-    :straight (persp-projectile :type git :host github :repo "bbatsov/persp-projectile" :branch "master"))
-#+end_src
-
-**** Consult projectile
-#+begin_src emacs-lisp
-    (use-package consult-projectile
-      :straight (consult-projectile :type git :host gitlab :repo "OlMon/consult-projectile" :branch "master")
-      :config
-      (setq consult-projectile-source-projectile-project-action #'projectile-persp-switch-project))
-#+end_src
-
-**** Keybindings
-#+begin_src emacs-lisp
-  (general-define-key
-   :keymaps 'projectile-mode-map
-   [remap projectile-switch-project] 'consult-projectile-switch-project
-   [remap projectile-find-file] 'consult-projectile-find-file
-   [remap projectile-switch-to-buffer] 'consult-projectile-switch-to-buffer)
-
-  (ak-leader-key-def
-    "p" '(:package projectile :keymap projectile-command-map :which-key "projects")
-    "SPC" '(consult-projectile-find-file :which-key "Find file in project")
-    "pa" '(projectile-add-known-project :which-key "Add to known projects")
-    "px" '(scratchy-open-project-scratch-buffer :which-key "Open project scratch buffer")
-    "pX" '(scratchy-switch-to-project-scratch-buffer :which-key "Switch to project scratch buffer"))
-#+end_src
-*** Project.el
+** Project.el
+Working on projects with =project.el=.
 #+begin_src emacs-lisp
   (use-package project
-    :straight (:type built-in)
+    :straight (:type built-in))
+#+end_src
 
-    )
+*** Perspective integration
+Bridge between =perspective= and =project.el=.
+#+begin_src emacs-lisp
+  (use-package perspective-project-bridge
+    :straight nil
+    :hook
+    (perspective-project-bridge-mode . (lambda ()
+  					 (if perspective-project-bridge-mode
+  					     (perspective-project-bridge-find-perspectives-for-all-buffers)
+  					   (perspective-project-bridge-kill-perspectives))))
+    (persp-mode . perspective-project-bridge-mode))
+#+end_src
+
+*** Consult integration
+Integration with =consult=
+#+begin_src emacs-lisp
+(use-package consult-project-extra
+  :straight (consult-project-extra :type git :host github :repo "Qkessler/consult-project-extra"))
+#+end_src
+
+*** Keybindings
+#+begin_src emacs-lisp
+    (ak-leader-key-def
+      "p" '(:package project :keymap project-prefix-map :which-key "projects")
+      "SPC" '(consult-project-extra-find :which-key "Find in project"))
 #+end_src
 
 ** Flycheck
@@ -1235,6 +1202,16 @@ Bridge between perspective and projectile.
     :config
     (setq highlight-indent-guides-method 'column)
     (add-hook 'prog-mode-hook 'highlight-indent-guides-mode))
+#+end_src
+
+*** Treesitter
+#+begin_src emacs-lisp
+  (setq major-mode-remap-alist
+	'((bash-mode . bash-ts-mode)
+	(json-mode . json-ts-mode)
+	(python-mode . python-ts-mode)
+	(c-mode . c-ts-mode)
+	(c++-mode . c++-ts-mode)))
 #+end_src
 
 *** Emacs Lisp
@@ -2005,7 +1982,7 @@ Better terminal emulation with =vterm=.
     :config
     (setq vterm-max-scrollback 10000)
     (advice-add 'evil-collection-vterm-insert :before #'vterm-reset-cursor-point)
-    (with-eval-after-load 'projectile
+    (with-eval-after-load 'project
       (require 'ak-vterm)))
 #+end_src
 
@@ -2053,5 +2030,4 @@ Configurations for =TRAMP=.
 * TODOs
 - Use doom emacs strategy with [[https://gitlab.com/koral/gcmh/][gcmh-mode]]
 - Custom splash screen with vertical centering and theme appropriate fancy splash image 
-- Use project.el instead of projectile
   
