@@ -345,8 +345,7 @@ Use =fancy-battery= for a nicer battery display
     (use-package warnings
       :config
       (setq native-comp-async-report-warnings-errors nil)
-      (add-to-list 'warning-suppress-types 'defvaralias)
-      (add-to-list 'warning-suppress-types 'lsp-mode))
+      (add-to-list 'warning-suppress-types 'defvaralias))
 
   (setq byte-compile-warnings '(cl-functions))
 #+end_src
@@ -963,7 +962,6 @@ Taming popups with =popper.el=
 Workspaces with =perspective=.
 #+begin_src emacs-lisp
   (use-package perspective
-    :demand t
     :custom
     (persp-initial-frame-name "main")
     :config
@@ -1065,7 +1063,7 @@ Conveniently save and load perspectives.
     "R" 'ak-persp-state-quick-load)
 
   (ak-leader-key-def
-    "TAB" '(:keymap perspective-map :which-key "workspace"))
+    "TAB" '(:keymap perspective-map :which-key "perspective"))
 #+end_src
 
 *** Turn on perspective
@@ -1159,14 +1157,10 @@ Working on projects with =project.el=.
 *** Perspective integration
 Bridge between =perspective= and =project.el=.
 #+begin_src emacs-lisp
-  (use-package perspective-project-bridge
-    :straight nil
-    :hook
-    (perspective-project-bridge-mode . (lambda ()
-  					 (if perspective-project-bridge-mode
-  					     (perspective-project-bridge-find-perspectives-for-all-buffers)
-  					   (perspective-project-bridge-kill-perspectives))))
-    (persp-mode . perspective-project-bridge-mode))
+  (with-eval-after-load 'perspective
+    (require 'perspective-project-bridge)
+    (add-hook 'persp-mode-hook #'perspective-project-bridge-mode)
+    (add-hook 'after-init-hook #'perspective-project-bridge-mode))
 #+end_src
 
 *** Consult integration
@@ -1229,67 +1223,62 @@ Integration with =consult=
      "d" 'elisp-def))
 #+end_src
 
-*** LSP mode
-=lsp-mode= for using emacs as an IDE.
+**** Package lint
 #+begin_src emacs-lisp
-  (use-package lsp-mode
-    :hook
-    ((prog-mode . lsp)
-    (lsp-mode . lsp-enable-which-key-integration))
-    :commands lsp)
-
+  (use-package package-lint)
 #+end_src
 
-**** LSP UI
+*** Eldoc
+Configure =eldoc=.
 #+begin_src emacs-lisp
-  (use-package lsp-ui
-    :commands lsp-ui-mode
+  (use-package eldoc
+    :straight (:type built-in)
     :config
-    (setq lsp-ui-sideline-enable t
-	  lsp-ui-sideline-show-hover nil
-	  lsp-ui-doc-position 'bottom))
+    (setq eldoc-echo-area-use-multiline-p nil))
+#+end_src
+
+*** Eglot
+=eglot= for using emacs as an IDE.
+#+begin_src emacs-lisp
+  (use-package eglot
+    :hook
+    ((verilog-mode-hook . eglot-ensure)
+     (c-mode . eglot-ensure)
+     (c++-mode . eglot-ensure)      
+     (c-ts-mode . eglot-ensure)     
+     (c++-ts-mode . eglot-ensure)
+     (scala-mode . eglot-ensure))
+    :config
+    (setq eglot-autoshutdown t))
 #+end_src
 
 **** Consult integration
 #+begin_src emacs-lisp
-  (use-package consult-lsp)
+(use-package consult-eglot)
 #+end_src
 
 **** Keybindings
 #+begin_src emacs-lisp
   (ak-leader-key-def
     "c" '(:ignore t :which-key "code")
-    "cd" 'xref-find-definitions
-    "cr" 'xref-find-references
-    "cf" 'lsp-format-buffer
-    "cn" 'lsp-ui-find-next-reference
-    "cp" 'lsp-ui-find-prev-reference
-    "cl" 'lsp-ui-sideline-mode
-    "cs" 'consult-lsp-symbols
-    "cS" 'consult-lsp-file-symbols
-    "cX" 'lsp-execute-code-action)
+    "cd" '(xref-find-definitions :which-key "Find definitionss")
+    "cD" '(xref-find-definitions-other-window :which-key "Find definitions other window")
+    "cR" '(xref-find-references :which-key "Find references")
+    "cr" '(eglot-rename :which-key "Rename symbol")
+    "cf" '(eglot-format :which-key "Format")
+    "ch" '(eldoc-doc-buffer :which-key "Docs")
+    "ci" '(eglot-code-organize-imports :which-key "Organize imports")
+    "cx" '(eglot-code-quickfix :which-key "Quickfix")
+    "cX" '(eglot-code-actions :which-key "Actions")
+    "cs" '(consult-eglot-symbols :which-key "Find symbol"))
 #+end_src
 
 *** Verilog
-Trying =verible-ls= out
+Trying =verible-ls= out.
 #+begin_src emacs-lisp
-(add-to-list 'lsp-language-id-configuration '(verilog-mode . "verilog"))
-(lsp-register-client
- (make-lsp-client :new-connection (lsp-stdio-connection "verible-verilog-ls")
-                  :major-modes '(verilog-mode)
-                  :server-id 'verible-ls))
-
-(add-hook 'verilog-mode-hook 'lsp)
-#+end_src
-
-**** Remote LSP support
-#+begin_src emacs-lisp
-  (lsp-register-client
-   (make-lsp-client :new-connection (lsp-tramp-connection "verible-verilog-ls")
-		    :major-modes '(verilog-mode)
-		    :remote? t
-		    :priority 3
-		    :server-id 'verible-ls-remote))
+  (with-eval-after-load 'eglot
+    (add-to-list 'eglot-server-programs
+                 '(verilog-mode . ("verible-verilog-ls"))))
 #+end_src
 
 **** Completion in =verilog-mode=
@@ -1305,14 +1294,13 @@ Bind TAB to =completion-at-point= in insert mode. =verilog-mode= binds it to =el
 #+end_src
 
 *** C/C++
-**** Remote LSP support
+=clangd= for C/C++.
 #+begin_src emacs-lisp
-  (lsp-register-client
-   (make-lsp-client :new-connection (lsp-tramp-connection "clangd")
-		    :major-modes '(c-mode c++-mode)
-		    :remote? t
-		    :priority 3
-		    :server-id 'clangd-ls-remote))
+  (with-eval-after-load 'eglot
+    (add-to-list 'eglot-server-programs '(c-mode . ("clangd")))
+    (add-to-list 'eglot-server-programs '(c++-mode . ("clangd")))
+    (add-to-list 'eglot-server-programs '(c-ts-mode . ("clangd")))
+    (add-to-list 'eglot-server-programs '(c++-ts-mode . ("clangd"))))
 #+end_src
 
 **** Completion in =cc-mode=
@@ -1348,13 +1336,7 @@ Bind TAB to =completion-at-point= in insert mode. =cc-mode= binds it to =c-inden
     :config
     (add-hook 'scala-mode-hook
 	      (lambda ()
-		(add-hook 'before-save-hook 'lsp-format-buffer nil 'make-it-local))))
-#+end_src
-
-**** LSP support
-Add metals backend for lsp-mode.
-#+begin_src emacs-lisp
-(use-package lsp-metals)
+		(add-hook 'before-save-hook 'eglot-format-buffer nil 'make-it-local))))
 #+end_src
 
 **** SBT mode
@@ -1971,6 +1953,14 @@ Jumping around with =avy=.
        (cdr (ring-ref avy-ring 0))))
     t)
   (setf (alist-get ?. avy-dispatch-alist) 'ak-avy-action-embark))
+#+end_src
+
+** Evil MC
+Multiple cursors with =evil-mc=.
+#+begin_src emacs-lisp
+  (use-package evil-mc
+    :config
+    (global-evil-mc-mode 1))
 #+end_src
 
 ** Vterm

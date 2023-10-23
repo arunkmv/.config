@@ -59,7 +59,7 @@
     Returns the vterm buffer."
   (unless (fboundp 'module-load)
     (user-error "Your build of Emacs lacks dynamic modules support and cannot load vterm"))
-  (let* ((project-root (or (project-root) default-directory))
+  (let* ((project-root (or (project-root (project-current)) default-directory))
 	 (default-directory
 	  (if arg
 	      default-directory
