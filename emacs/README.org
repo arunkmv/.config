@@ -1116,21 +1116,28 @@ Easy git management with =magit=.
   (use-package magit
     :commands (magit-status magit-get-current-branch)
     :custom
-    (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
+    (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1)
+    :init
+    (load-library "magit-extras"))
 
+#+end_src
+
+*** Keybindings
+#+begin_src emacs-lisp
   (ak-leader-key-def
-    "gg"  'magit-status
-    "gd"  'magit-diff-unstaged
-    "gc"  'magit-branch-or-checkout
+    "gg"  '(magit-status :which-key "Status")
+    "gd"  '(magit-diff-unstaged :which-key "Diff unstaged")
+    "gc"  '(magit-branch-or-checkout :which-key "Checkout")
     "gl"   '(:ignore t :which-key "log")
-    "glc" 'magit-log-current
-    "glf" 'magit-log-buffer-file
-    "gb"  'magit-branch
-    "gP"  'magit-push-current
-    "gp"  'magit-pull-branch
-    "gf"  'magit-fetch
-    "gF"  'magit-fetch-all
-    "gr"  'magit-rebase)
+    "glc" '(magit-log-current :which-key "Log current")
+    "glf" '(magit-log-buffer-file :which-key "Log buffer")
+    "gb"  '(magit-branch :which-key "Branch")
+    "gP"  '(magit-push-current :which-key "Push")
+    "gp"  '(magit-pull-branch :which-key "Pull")
+    "gf"  '(magit-fetch :which-key "Fetch")
+    "gF"  '(magit-fetch-all :which-key "Fetch all")
+    "gr"  '(magit-rebase :which-key "Rebase")
+    "gs" '(magit-project-status :which-key "Project status"))
 #+end_src
 
 ** Diff-hl
@@ -1160,17 +1167,23 @@ Markdown for easy documents.
 ** Project.el
 Working on projects with =project.el=.
 #+begin_src emacs-lisp
-  (use-package project
-    :straight (:type built-in))
+      (use-package project
+        :straight (:type built-in)
+        :config
+        (setq project-switch-commands (delete '(project-vc-dir "VC-Dir") project-switch-commands)))
 #+end_src
 
 *** Perspective integration
 Bridge between =perspective= and =project.el=.
 #+begin_src emacs-lisp
-  (with-eval-after-load 'perspective
-    (require 'perspective-project-bridge)
-    (add-hook 'persp-mode-hook #'perspective-project-bridge-mode)
-    (add-hook 'after-init-hook #'perspective-project-bridge-mode))
+    (use-package perspective-project-bridge
+      :straight (perspective-project-bridge :type git :host github :repo "arunkmv/perspective-project-bridge")
+      :hook
+      (persp-mode . perspective-project-bridge-mode)
+      (after-init . perspective-project-bridge-mode)
+      :config
+      (add-to-list 'perspective-project-bridge-funcs 'magit-project-status)
+      (add-to-list 'perspective-project-bridge-funcs 'ak-vterm-toggle))
 #+end_src
 
 *** Consult integration

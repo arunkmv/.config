@@ -1,3 +1,12 @@
+;;; lisp/ak-vterm.el --- Extra vterm utilities -*- lexical-binding: t; -*-
+;;
+;; This file is not part of GNU Emacs.
+;;
+;;; Commentary:
+;; Provides ZSH and project.el integration.
+;;
+;;; Code:
+
 (require 'vterm)
 (require 'project)
 
@@ -13,9 +22,12 @@
 
 (defvar ak-vterm-consult-history)
 
+;; ZSH integration
+
 (defun ak-vterm-consult-get-zsh-history (n)
   "Read N lines from `ak-vterm-consult-zsh-history-file'.
-     Also formats commands and removes duplicates."
+
+   Also formats commands and removes duplicates."
   (with-temp-buffer
     (insert-file-contents ak-vterm-consult-zsh-history-file)
     (let* ((all-lines (split-string (buffer-string) "\n" t))
@@ -36,6 +48,7 @@
 	  (push (concat (pop sl-cmds) line) sl-cmds)))
       (delete-dups sl-cmds))))
 
+;;;###autoload
 (defun ak-vterm-consult-zsh-history ()
   "Send command string from zsh history to `vterm'."
     (interactive)
@@ -54,12 +67,13 @@
 	  (vterm-send-string cmd))))
 
 (defun ak-vterm-configure-project-root-and-display (arg display-fn)
-  "Sets the environment variable PROOT and displays a terminal using `display-fn`.
-    If prefix ARG is non-nil, cd into `default-directory' instead of project root.
-    Returns the vterm buffer."
+  "Set environment variable PROOT and display a terminal using DISPLAY-FN.
+
+    If prefix ARG is non-nil, cd into `default-directory' instead of
+    project root.  Returns the vterm buffer."
   (unless (fboundp 'module-load)
     (user-error "Your build of Emacs lacks dynamic modules support and cannot load vterm"))
-  (let* ((project-root (or (project-root (project-current)) default-directory))
+  (let* ((project-root (if (project-current) (project-root (project-current)) default-directory))
 	 (default-directory
 	  (if arg
 	      default-directory
@@ -69,9 +83,10 @@
 
 ;;;###autoload
 (defun ak-vterm-toggle (arg)
-  "Toggles a terminal popup window at project root.
-      If prefix ARG is non-nil, recreate vterm buffer in the default directory.
-      Returns the vterm buffer."
+  "Toggle a terminal popup window at project root.
+
+   If prefix ARG is non-nil, recreate vterm buffer in the default
+   directory.  Returns the vterm buffer."
   (interactive "P")
   (ak-vterm-configure-project-root-and-display
    arg
@@ -99,9 +114,23 @@
 	   (pop-to-buffer buffer)))
        (get-buffer buffer-name)))))
 
+(defvar ak-vterm-bind-project-command t
+  "Whether to bind \"m\" to `ak-vterm-toggle' in `project-prefix-map'.
+If so, then an entry is added to `project-switch-commands' as
+well.")
+
+(with-eval-after-load 'project
+  ;; Only more recent versions of project.el have `project-prefix-map' and
+  ;; `project-switch-commands', though project.el is available in Emacs 25.
+  (when (and ak-vterm-bind-project-command
+             (boundp 'project-prefix-map))
+    (keymap-set project-prefix-map "t" #'ak-vterm-toggle)
+    (add-to-list 'project-switch-commands '(ak-vterm-toggle "Terminal") t)))
+
 ;;;###autoload
 (defun ak-vterm-here (arg)
   "Open a terminal buffer in the current window at project root.
+
   If prefix ARG is non-nil, cd into `default-directory' instead of project root.
   Returns the vterm buffer."
   (interactive "P")
@@ -114,6 +143,7 @@
 ;;;###autoload
 (defun ak-vterm-dir (directory)
   "Open a terminal buffer in the current window at DIRECTORY.
+
   Returns the vterm buffer."
   (interactive "f")
   (let ((default-directory (file-name-directory directory)))
@@ -124,3 +154,6 @@
 	 (vterm vterm-buffer-name))))))
 
 (provide 'ak-vterm)
+
+;;; ak-vterm.el ends here
+
