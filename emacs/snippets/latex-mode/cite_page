@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: cite_page
+# key: cp
+# --
+\cite[$1]{$2} $0

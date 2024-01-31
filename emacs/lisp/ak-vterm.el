@@ -155,5 +155,5 @@ well.")
 
 (provide 'ak-vterm)
 
-;;; ak-vterm.el ends here
+;;; lisp/ak-vterm.el ends here
 

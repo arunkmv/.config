@@ -1,5 +1,5 @@
 #+TITLE: Emacs Configuration
-#+PROPERTY: header-args:emacs-lisp :tangle init.el :comments link
+#+PROPERTY: header-args:emacs-lisp :tangle init.el :comments no
 #+AUTHOR: Arunkumar M V
 
 This is my literate configuration for Emacs.
@@ -68,8 +68,10 @@ Bootstrap straight.
 
 Use straight to install packages by default and in use-package expressions.
 #+begin_src emacs-lisp
-(setq straight-use-package-by-default t)
-(straight-use-package 'use-package)
+  (setq straight-use-package-by-default t)
+  (straight-use-package 'use-package)
+
+(setq use-package-compute-statistics t)
 #+end_src
 
 ** Cache directories
@@ -202,7 +204,7 @@ Use =general.el= for prefixed keybinding.
     (general-evil-setup t)
 
     (general-create-definer ak-leader-key-def
-      :states 'normal
+      :states '(normal visual)
       :keymaps 'override
       :prefix "SPC"
       :global-prefix "C-SPC")
@@ -365,6 +367,11 @@ Use =fancy-battery= for a nicer battery display
   (add-to-list 'image-types 'svg)
   (add-to-list 'image-types 'gif)
   #+end_src
+
+** Use short answers
+#+begin_src emacs-lisp
+(setq use-short-answers t)
+#+end_src
 
 ** Dashboard
 Setup a minimal dashboard
@@ -945,26 +952,27 @@ Bind evil window keys to global prefix.
 ** Popper
 Taming popups with =popper.el=
 #+begin_src emacs-lisp
-  (use-package popper
-    :ensure t ; or :straight t
-    :bind (("C-`"   . popper-toggle-latest)
-	   ("M-`"   . popper-cycle)
-	   ("C-M-`" . popper-toggle-type))
-    :custom
-    (popper-window-height 12)
-    :init
-    (setq popper-reference-buffers
-	  '("\\*Messages\\*"
-	    "Output\\*$"
-	    "\\*Async Shell Command\\*"
-	    "^\\*vterm-popup.*\\*$"
-	    "^\\*scratch.*\\*$"
-	    help-mode
-	    helpful-mode
-	    compilation-mode)
-	  popper-mode-line 1)
-    (popper-mode 1)
-    (popper-echo-mode 1)) 
+    (use-package popper
+      :ensure t ; or :straight t
+      :bind (("C-`"   . popper-toggle-latest)
+  	   ("M-`"   . popper-cycle)
+  	   ("C-M-`" . popper-toggle-type))
+      :custom
+      (popper-window-height 12)
+      :init
+      (setq popper-reference-buffers
+  	  '("\\*Messages\\*"
+  	    "Output\\*$"
+  	    "\\*Async Shell Command\\*"
+  	    "^\\*vterm-popup.*\\*$"
+  	    "^\\*scratch.*\\*$"
+  	    help-mode
+  	    helpful-mode
+  	    compilation-mode
+  	    racket-repl-mode)
+  	  popper-mode-line 1)
+      (popper-mode 1)
+      (popper-echo-mode 1)) 
 #+end_src
 
 * Buffers and workspaces
@@ -1118,7 +1126,7 @@ Easy git management with =magit=.
     :custom
     (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1)
     :init
-    (load-library "magit-extras"))
+    (autoload 'magit-project-status "magit-extras"))
 
 #+end_src
 
@@ -1138,6 +1146,17 @@ Easy git management with =magit=.
     "gF"  '(magit-fetch-all :which-key "Fetch all")
     "gr"  '(magit-rebase :which-key "Rebase")
     "gs" '(magit-project-status :which-key "Project status"))
+#+end_src
+** Ediff
+=ediff= for nicer diffs.
+#+begin_src emacs-lisp
+  (use-package ediff
+    :straight (:type built-in)
+    :config
+    (setq ediff-keep-variants nil
+	  ediff-make-buffers-readonly-at-startup nil
+	  ediff-split-window-function 'split-window-horizontally
+	  ediff-window-setup-function 'ediff-setup-windows-plain))
 #+end_src
 
 ** Diff-hl
@@ -1167,10 +1186,11 @@ Markdown for easy documents.
 ** Project.el
 Working on projects with =project.el=.
 #+begin_src emacs-lisp
-      (use-package project
-        :straight (:type built-in)
-        :config
-        (setq project-switch-commands (delete '(project-vc-dir "VC-Dir") project-switch-commands)))
+  (use-package project
+    :straight (:type built-in)
+    :config
+    (setq project-switch-commands (delete '(project-vc-dir "VC-Dir") project-switch-commands))
+    (add-to-list 'vc-directory-exclusion-list ".cache"))
 #+end_src
 
 *** Perspective integration
@@ -1198,12 +1218,6 @@ Integration with =consult=
     (ak-leader-key-def
       "p" '(:package project :keymap project-prefix-map :which-key "projects")
       "SPC" '(consult-project-extra-find :which-key "Find in project"))
-#+end_src
-
-** Flycheck
-#+begin_src emacs-lisp
-  (use-package flycheck
-    :hook (prog-mode . flycheck-mode))
 #+end_src
 
 ** Prog mode
@@ -1270,6 +1284,8 @@ Configure =eldoc=.
      (c++-mode . eglot-ensure)      
      (c-ts-mode . eglot-ensure)     
      (c++-ts-mode . eglot-ensure)
+     (python-mode . eglot-ensure)
+     (python-ts-mode . eglot-ensure)
      (scala-mode . eglot-ensure))
     :config
     (setq eglot-autoshutdown t))
@@ -1277,7 +1293,8 @@ Configure =eldoc=.
 
 **** Consult integration
 #+begin_src emacs-lisp
-(use-package consult-eglot)
+  (use-package consult-eglot
+    :defer t)
 #+end_src
 
 **** Keybindings
@@ -1320,10 +1337,7 @@ Bind TAB to =completion-at-point= in insert mode. =verilog-mode= binds it to =el
 =clangd= for C/C++.
 #+begin_src emacs-lisp
   (with-eval-after-load 'eglot
-    (add-to-list 'eglot-server-programs '(c-mode . ("clangd")))
-    (add-to-list 'eglot-server-programs '(c++-mode . ("clangd")))
-    (add-to-list 'eglot-server-programs '(c-ts-mode . ("clangd")))
-    (add-to-list 'eglot-server-programs '(c++-ts-mode . ("clangd"))))
+    (add-to-list 'eglot-server-programs '((c-mode c++-mode c-ts-mode c++-ts-mode) . ("clangd"))))
 #+end_src
 
 **** Completion in =cc-mode=
@@ -1342,13 +1356,11 @@ Bind TAB to =completion-at-point= in insert mode. =cc-mode= binds it to =c-inden
 (use-package cmake-mode)
 #+end_src
 
-**** Flycheck clang-tidy
+*** Python
+=pyright= for C/C++.
 #+begin_src emacs-lisp
-(use-package flycheck-clang-tidy
-  :after flycheck
-  :hook
-  (flycheck-mode . flycheck-clang-tidy-setup)
-  )
+  (with-eval-after-load 'eglot
+    (add-to-list 'eglot-server-programs '((python-mode python-ts-mode) . ("pylsp"))))
 #+end_src
 
 *** Scala
@@ -1678,7 +1690,7 @@ Integration between =citar=, =org-roam= and =org-noter=.
   (use-package citar-org-roam
     :after org citar org-roam
     :config
-    (defvar ak-citar-org-roam-note-header-template "- tags ::\n\n* Notes\n  :PROPERTIES:\n  :Custom_ID: ${citekey}\n  :NOTER_DOCUMENT: ${file}\n  :NOTER_PAGE: \n  :END:\n\n")
+    (defvar ak-citar-org-roam-note-header-template "%(concat \"- tags ::\n\n* Notes\n :PROPERTIES:\n :Custom_ID:\" \"${citekey}\" \"\n :NOTER_DOCUMENT: \" (concat ak-zotero-bibtex-library \"${file}\") \"\n :NOTER_PAGE: \n :END:\n\n\")")
 
     (defun ak-citar-org-roam--create-capture-note (citekey entry)
       "Open or create org-roam node for CITEKEY and ENTRY.
@@ -1721,7 +1733,7 @@ Integration between =citar=, =org-roam= and =org-noter=.
 =org-noter= for taking literature notes.
 #+begin_src emacs-lisp
   (use-package org-noter
-    :after org pdf-tools
+    :after org
     :config
     (setq org-noter-notes-window-location 'vertical-split
 	  org-noter-doc-split-fraction '(0.2 . 0.8)
@@ -1834,8 +1846,7 @@ Configurations for various tools and packages.
   (use-package treemacs
     :config
     (ak-leader-key-def
-      "ov" '(treemacs :which-key "Dired"))
-    )
+      "ov" '(treemacs :which-key "Treemacs")))
 #+end_src
 
 *** Nerd icons
@@ -1843,6 +1854,14 @@ Configurations for various tools and packages.
 (use-package treemacs-nerd-icons
   :config
   (treemacs-load-theme "nerd-icons"))
+#+end_src
+
+*** Perspective integration
+#+begin_src emacs-lisp
+  (use-package treemacs-perspective
+    :after (treemacs perspective)
+    :ensure t
+    :config (treemacs-set-scope-type 'Perspectives))
 #+end_src
 
 ** Helpful
@@ -1915,23 +1934,23 @@ Using =hydra= for better key shortcuts.
 Reading pdfs with =pdf-tools=.
 #+begin_src emacs-lisp
   (use-package pdf-tools
+    :mode ("\\.pdf\\'" . pdf-view-mode)
     :config
-    (add-to-list 'auto-mode-alist '("\\.pdf\\'" . pdf-view-mode))
-    (setq-default pdf-view-display-size 'fit-page)
-    (setq pdf-view-use-scaling t
-	  pdf-view-use-imagemagick nil
-	  pdf-view-midnight-colors '("#ebdbb2" . "#282828"))
-    ;; Fix flickering pdfs when evil-mode is enabled
-    (add-hook 'pdf-view-mode-hook #'(lambda () (setq-local evil-normal-state-cursor (list nil))))
-    (add-hook 'pdf-view-mode-hook 'pdf-view-midnight-minor-mode)
-    (add-hook 'pdf-view-mode-hook 'pdf-history-minor-mode)
-    (add-hook 'pdf-view-mode-hook 'pdf-isearch-minor-mode)
-    (general-define-key
-     :states 'normal
-     :keymaps 'pdf-view-mode-map
-     "gh" '(:ignore t :which-key "PDF history")
-     "ghf" '(pdf-history-forward :which-key "Forward")
-     "ghb" '(pdf-history-backward :which-key "Backward")))
+      (setq-default pdf-view-display-size 'fit-page)
+      (setq pdf-view-use-scaling t
+    	  pdf-view-use-imagemagick nil
+    	  pdf-view-midnight-colors '("#ebdbb2" . "#282828"))
+      ;; Fix flickering pdfs when evil-mode is enabled
+      (add-hook 'pdf-view-mode-hook #'(lambda () (setq-local evil-normal-state-cursor (list nil))))
+      (add-hook 'pdf-view-mode-hook 'pdf-view-midnight-minor-mode)
+      (add-hook 'pdf-view-mode-hook 'pdf-history-minor-mode)
+      (add-hook 'pdf-view-mode-hook 'pdf-isearch-minor-mode)
+      (general-define-key
+       :states 'normal
+       :keymaps 'pdf-view-mode-map
+       "gh" '(:ignore t :which-key "PDF history")
+       "ghf" '(pdf-history-forward :which-key "Forward")
+       "ghb" '(pdf-history-backward :which-key "Backward")))
 #+end_src
 
 ** Saveplace pdf view
@@ -1994,6 +2013,7 @@ Better terminal emulation with =vterm=.
     :commands (vterm ak-vterm-toggle ak-vterm-here)
     :config
     (setq vterm-max-scrollback 10000)
+    (setq vterm-tramp-shells (append vterm-tramp-shells '(("ssh" "/bin/sh -l"))))
     (advice-add 'evil-collection-vterm-insert :before #'vterm-reset-cursor-point)
     (with-eval-after-load 'project
       (require 'ak-vterm)))
@@ -2021,13 +2041,39 @@ Better terminal emulation with =vterm=.
 Writing latex documents with =auctex=.
 #+begin_src emacs-lisp
   (use-package tex
+    :defer t
     :straight auctex
     :config
     (add-to-list 'TeX-view-program-selection '(output-pdf "PDF Tools"))
     (when ak-is-mac
       (add-to-list 'TeX-view-program-list '("PDF Tools" TeX-pdf-tools-sync-view)))
     ;; Update PDF buffers after successful LaTeX compilation
-    (remove-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer))
+    (remove-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer)
+
+    (ak-local-leader-key-def
+      :states '(normal visual)
+      :keymaps 'LaTeX-mode-map
+      "c" '(TeX-command-master :which-key "command master")
+      "f" '(TeX-font :which-key "fontify")
+      "e" '(LaTeX-environment :which-key "environment")
+      "s" '(LaTeX-section :which-key "section")
+      ;; preview-latex
+      "p" '(:ignore :which-key "preview")
+      "pb"    '(preview-buffer :which-key "buffer")
+      "pd"    '(preview-document :which-key "document")
+      "pe"    '(preview-environment :which-key "environment")
+      "pf"    '(preview-cache-preamble :which-key "cache preamble")
+      "pF"    '(preview-cache-preamble-off :which-key "cache preamble off")
+      "pp"    '(preview-at-point :which-key "at point")
+      "pr"    '(preview-region :which-key "region")
+      "ps"    '(preview-section :which-key "section")
+      "pc" '(:ignore :which-key "clearout")
+      "pcb" '(preview-clearout-buffer :which-key "buffer")
+      "pcd" '(preview-clearout-document :which-key "document")
+      "pcp" '(preview-clearout-at-point :which-key "at")
+      "pcr" '(preview-clearout :which-key "clearout")
+      "pcs" '(preview-clearout-section :which-key "section"))
+    )
 #+end_src
 
 ** TRAMP
@@ -2040,7 +2086,21 @@ Configurations for =TRAMP=.
     (setq inhibit-eol-conversion t))
 #+end_src
 
+** Yasnippet
+#+begin_src emacs-lisp
+  (use-package yasnippet
+    :config
+    (add-to-list 'yas-snippet-dirs (concat user-emacs-directory "snippets/"))
+    (yas-reload-all)
+    (add-hook 'prog-mode-hook #'yas-minor-mode))
+
+  (use-package yasnippet-snippets
+    :after yasnippet)
+  #+end_src
+
 * TODOs
-- Use doom emacs strategy with [[https://gitlab.com/koral/gcmh/][gcmh-mode]]
 - Custom splash screen with vertical centering and theme appropriate fancy splash image 
+- Eshell
+- Dired
+- Restart
   
