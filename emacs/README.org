@@ -90,7 +90,9 @@ No littering
   (use-package no-littering
     :init
     (setq no-littering-etc-directory ak-etc-dir
-	  no-littering-var-directory ak-var-dir))
+	  no-littering-var-directory ak-var-dir)
+    :config
+    (no-littering-theme-backups))
 #+end_src
 
 ** Update load path
@@ -126,8 +128,7 @@ Use =undo-tree= for vim-like undo.
 #+begin_src emacs-lisp
   (use-package undo-tree
     :init
-    (global-undo-tree-mode 1)
-    (setq undo-tree-history-directory-alist `(("." . ,(concat ak-var-dir "undo-tree-hist/")))))
+    (global-undo-tree-mode 1))
 #+end_src
 
 ** Evil mode
@@ -651,41 +652,42 @@ Configure display line numbers.
 *** Toggle line numbers
 Function to toggle display and cycle styles of line numbers.
 #+begin_src emacs-lisp
-  (defun ak-toggle-line-numbers ()
-    "Toggle line number display."
-    (interactive)
-    (defvar ak-line-number-previous-style display-line-numbers-type)
-    (if display-line-numbers
-	(progn (setq ak-line-number-previous-style display-line-numbers)
-	       (setq display-line-numbers nil))
-      (setq display-line-numbers ak-line-number-previous-style)))
+    (defun ak-toggle-line-numbers ()
+      "Toggle line number display."
+      (interactive)
+      (defvar ak-line-number-previous-style display-line-numbers-type)
+      (if display-line-numbers
+  	(progn (setq ak-line-number-previous-style display-line-numbers)
+  	       (setq display-line-numbers nil))
+        (setq display-line-numbers ak-line-number-previous-style)))
 
-  (defun ak-cycle-line-numbers ()
-    "Cycle line number styles.
+    (defun ak-cycle-line-numbers ()
+      "Cycle line number styles.
 
-  Cycles through regular, relative and no line numbers. The order depends on what
-  `display-line-numbers-type' is set to. If you're using Emacs 26+, and
-  visual-line-mode is on, this skips relative and uses visual instead.
+    Cycles through regular, relative and no line numbers. The order depends on what
+    `display-line-numbers-type' is set to. If you're using Emacs 26+, and
+    visual-line-mode is on, this skips relative and uses visual instead.
 
-  See `display-line-numbers' for what these values mean."
-    (interactive)
-    (defvar ak-line-number-style display-line-numbers-type)
-    (let* ((styles `(t ,(if visual-line-mode 'visual 'relative) nil))
-	   (order (cons display-line-numbers-type (remq display-line-numbers-type styles)))
-	   (queue (memq ak-line-number-style order))
-	   (next (if (= (length queue) 1)
-		     (car order)
-		   (car (cdr queue)))))
-      (setq ak-line-number-style next)
-      (setq display-line-numbers next)
-      (message "Switched to %s line numbers"
-	       (pcase next
-		 (`t "normal")
-		 (`nil "disabled")
-		 (_ (symbol-name next))))))
+    See `display-line-numbers' for what these values mean."
+      (interactive)
+      (defvar ak-line-number-style display-line-numbers-type)
+      (let* ((styles `(t ,(if visual-line-mode 'visual 'relative) nil))
+  	   (order (cons display-line-numbers-type (remq display-line-numbers-type styles)))
+  	   (queue (memq ak-line-number-style order))
+  	   (next (if (= (length queue) 1)
+  		     (car order)
+  		   (car (cdr queue)))))
+        (setq ak-line-number-style next)
+        (setq display-line-numbers next)
+        (message "Switched to %s line numbers"
+  	       (pcase next
+  		 (`t "normal")
+  		 (`nil "disabled")
+  		 (_ (symbol-name next))))))
 
-  (ak-leader-key-def
-    "tl" '(ak-cycle-line-numbers :which-key "Line numbers"))
+    (ak-leader-key-def
+      "tl" '(ak-cycle-line-numbers :which-key "Line numbers style")
+      "tL" '(ak-toggle-line-numbers :which-key "Line numbers"))
 #+end_src
 
 ** Visual line mode
@@ -966,13 +968,14 @@ Taming popups with =popper.el=
   	    "\\*Async Shell Command\\*"
   	    "^\\*vterm-popup.*\\*$"
   	    "^\\*scratch.*\\*$"
+	      "\\*eldoc\\*"
   	    help-mode
   	    helpful-mode
   	    compilation-mode
   	    racket-repl-mode)
   	  popper-mode-line 1)
-      (popper-mode 1)
-      (popper-echo-mode 1)) 
+    (popper-mode 1)
+    (popper-echo-mode 1)) 
 #+end_src
 
 * Buffers and workspaces
@@ -1361,6 +1364,18 @@ Bind TAB to =completion-at-point= in insert mode. =cc-mode= binds it to =c-inden
 #+begin_src emacs-lisp
   (with-eval-after-load 'eglot
     (add-to-list 'eglot-server-programs '((python-mode python-ts-mode) . ("pylsp"))))
+#+end_src
+
+*** Python
+**** Python venv support
+#+begin_src emacs-lisp
+(use-package pyvenv)
+#+end_src
+
+*** Python
+**** Python venv support
+#+begin_src emacs-lisp
+(use-package pyvenv)
 #+end_src
 
 *** Scala
@@ -1936,21 +1951,21 @@ Reading pdfs with =pdf-tools=.
   (use-package pdf-tools
     :mode ("\\.pdf\\'" . pdf-view-mode)
     :config
-      (setq-default pdf-view-display-size 'fit-page)
-      (setq pdf-view-use-scaling t
-    	  pdf-view-use-imagemagick nil
-    	  pdf-view-midnight-colors '("#ebdbb2" . "#282828"))
-      ;; Fix flickering pdfs when evil-mode is enabled
-      (add-hook 'pdf-view-mode-hook #'(lambda () (setq-local evil-normal-state-cursor (list nil))))
-      (add-hook 'pdf-view-mode-hook 'pdf-view-midnight-minor-mode)
-      (add-hook 'pdf-view-mode-hook 'pdf-history-minor-mode)
-      (add-hook 'pdf-view-mode-hook 'pdf-isearch-minor-mode)
-      (general-define-key
-       :states 'normal
-       :keymaps 'pdf-view-mode-map
-       "gh" '(:ignore t :which-key "PDF history")
-       "ghf" '(pdf-history-forward :which-key "Forward")
-       "ghb" '(pdf-history-backward :which-key "Backward")))
+    (setq-default pdf-view-display-size 'fit-page)
+    (setq pdf-view-use-scaling t
+    	pdf-view-use-imagemagick nil)
+    ;; Fix flickering pdfs when evil-mode is enabled
+    (add-hook 'pdf-view-mode-hook #'(lambda () (setq-local evil-normal-state-cursor (list nil))))
+    (add-hook 'pdf-view-mode-hook 'pdf-view-midnight-minor-mode)
+    (add-hook 'pdf-view-midnight-minor-mode-hook (lambda () (setq pdf-view-midnight-colors '("#ebdbb2" . "#282828"))))
+    (add-hook 'pdf-view-mode-hook 'pdf-history-minor-mode)
+    (add-hook 'pdf-view-mode-hook 'pdf-isearch-minor-mode)
+    (general-define-key
+     :states 'normal
+     :keymaps 'pdf-view-mode-map
+     "gh" '(:ignore t :which-key "PDF history")
+     "ghf" '(pdf-history-forward :which-key "Forward")
+     "ghb" '(pdf-history-backward :which-key "Backward")))
 #+end_src
 
 ** Saveplace pdf view
@@ -2050,6 +2065,28 @@ Writing latex documents with =auctex=.
     ;; Update PDF buffers after successful LaTeX compilation
     (remove-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer)
 
+    (defun ak-latex-interface-toggle ()
+      "Toggle nice latex interface"
+      (interactive)
+      (defvar-local ak-latex-interface nil)
+      (if TeX-mode-p
+  	(if (not ak-latex-interface)
+  	    (progn
+  	      (visual-line-mode)
+  	      (visual-fill-column-mode)
+  	      (ak-toggle-line-numbers)
+  	      (setq visual-fill-column-center-text t
+  		    visual-fill-column-width 70
+  		    ak-latex-interface t))
+  	  (progn
+  	    (ak-toggle-line-numbers)
+  	    (visual-line-mode -1)
+  	    (visual-fill-column-mode -1)
+  	    (setq ak-latex-interface nil))
+  	  )
+        (message "Not in TeX mode!"))
+      )
+
     (ak-local-leader-key-def
       :states '(normal visual)
       :keymaps 'LaTeX-mode-map
@@ -2057,6 +2094,7 @@ Writing latex documents with =auctex=.
       "f" '(TeX-font :which-key "fontify")
       "e" '(LaTeX-environment :which-key "environment")
       "s" '(LaTeX-section :which-key "section")
+      "i" '(ak-latex-interface-toggle :which-key "Interface toggle")
       ;; preview-latex
       "p" '(:ignore :which-key "preview")
       "pb"    '(preview-buffer :which-key "buffer")
