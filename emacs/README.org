@@ -911,6 +911,14 @@ Scale text with =C-M--= and =C-M-==
   (default-text-scale-mode))
 #+end_src
 
+** Framemove
+=framemove= integration to navigate between frames.
+#+begin_src emacs-lisp
+  (use-package framemove
+    :config
+    (setq framemove-hook-into-windmove t))
+#+end_src
+
 ** Ace window
 =ace-window= for easily switching between windows.
 
