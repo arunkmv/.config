@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: Member Doxygen
+# key: /*m
+# group: doxygen
+# --
+/**< ${1:member description} */

@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: Singleline Doxygen
+# key: /*
+# group: doxygen
+# --
+/** ${1:brief description} */

@@ -802,18 +802,24 @@ In-buffer completions with =corfu=
     :custom
     (corfu-cycle t)
     :bind (:map corfu-map
-		("C-j" . corfu-next)
-		("C-k" . corfu-previous)
-		("TAB" . corfu-insert))
+    	      ("C-j" . corfu-next)
+    	      ("C-k" . corfu-previous)
+    	      ("TAB" . corfu-insert))
     :config
     (setq tab-always-indent 'complete)
     ;; Adapted from Corfu's manual.
     (defun ak-corfu-enable-always-in-minibuffer ()
       "Enable Corfu in the minibuffer if Vertico is not active.
-  Useful for prompts such as `eval-expression' and `shell-command'."
+    Useful for prompts such as `eval-expression' and `shell-command'."
       (unless (bound-and-true-p vertico--input)
-	(corfu-mode 1)))
+        (corfu-mode 1)))
     (add-hook 'minibuffer-setup-hook #'ak-corfu-enable-always-in-minibuffer 1))
+
+  ;; Remove interfering evil binding
+  (general-define-key
+   :states 'insert
+   :keymaps 'evil-insert-state-map 
+   "C-k" nil)
 #+end_src
 
 *** Cape
@@ -1256,6 +1262,13 @@ Integration with =consult=
 	(c++-mode . c++-ts-mode)))
 #+end_src
 
+*** Ts-fold
+Treesitter fold for code folding.
+#+begin_src emacs-lisp
+(use-package treesit-fold
+  :straight (treesit-fold :type git :host github :repo "emacs-tree-sitter/treesit-fold"))
+  #+end_src
+
 *** Emacs Lisp
 **** Elisp def
 #+begin_src emacs-lisp
@@ -1348,7 +1361,7 @@ Bind TAB to =completion-at-point= in insert mode. =verilog-mode= binds it to =el
 =clangd= for C/C++.
 #+begin_src emacs-lisp
   (with-eval-after-load 'eglot
-    (add-to-list 'eglot-server-programs '((c-mode c++-mode c-ts-mode c++-ts-mode) . ("clangd"))))
+    (add-to-list 'eglot-server-programs '((c-mode c++-mode c-ts-mode c++-ts-mode) . ("clangd" "--header-insertion=never"))))
 #+end_src
 
 **** Completion in =cc-mode=
@@ -2026,6 +2039,14 @@ Multiple cursors with =evil-mc=.
   (use-package evil-mc
     :config
     (global-evil-mc-mode 1))
+
+  (general-define-key
+   :states '(normal visual)
+   :keymaps 'evil-mc-key-map
+   "g.C-p" nil
+   "g.C-r" nil
+   "g.p" #'evil-mc-pause-cursors
+   "g.r" #'evil-mc-resume-cursors)
 #+end_src
 
 ** Vterm
@@ -2142,6 +2163,11 @@ Configurations for =TRAMP=.
 
   (use-package yasnippet-snippets
     :after yasnippet)
+
+  (general-define-key
+   :keymaps 'yas-minor-mode-map
+   "TAB" nil
+   "<backtab>" #'yas-expand)
   #+end_src
 
 * TODOs
