@@ -1095,7 +1095,8 @@ Conveniently save and load perspectives.
     "TAB" 'ak-persp-display
     "d" 'ak-persp-kill-current
     "S" 'ak-persp-state-quick-save
-    "R" 'ak-persp-state-quick-load)
+    "R" 'ak-persp-state-quick-load
+    "I" 'persp-ibuffer)
 
   (ak-leader-key-def
     "TAB" '(:keymap perspective-map :which-key "perspective"))
@@ -2141,6 +2142,13 @@ Writing latex documents with =auctex=.
       "pcr" '(preview-clearout :which-key "clearout")
       "pcs" '(preview-clearout-section :which-key "section"))
     )
+#+end_src
+
+*** LatexMk support
+#+begin_src emacs-lisp
+  (use-package auctex-latexmk
+    :config
+    (auctex-latexmk-setup))
 #+end_src
 
 ** TRAMP
