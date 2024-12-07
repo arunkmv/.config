@@ -2085,21 +2085,25 @@ Better terminal emulation with =vterm=.
 ** Latex
 Writing latex documents with =auctex=.
 #+begin_src emacs-lisp
-  (use-package tex
-    :defer t
-    :straight auctex
-    :config
-    (add-to-list 'TeX-view-program-selection '(output-pdf "PDF Tools"))
-    (when ak-is-mac
-      (add-to-list 'TeX-view-program-list '("PDF Tools" TeX-pdf-tools-sync-view)))
-    ;; Update PDF buffers after successful LaTeX compilation
-    (remove-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer)
+    (use-package tex
+      :defer t
+      :straight auctex
+      :config
+      (add-to-list 'TeX-view-program-selection '(output-pdf "PDF Tools"))
+      (when ak-is-mac
+        (add-to-list 'TeX-view-program-list '("PDF Tools" TeX-pdf-tools-sync-view)))
+      ;; Update PDF buffers after successful LaTeX compilation
+      (remove-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer)
+      #+end_src
 
-    (defun ak-latex-interface-toggle ()
-      "Toggle nice latex interface"
-      (interactive)
-      (defvar-local ak-latex-interface nil)
-      (if TeX-mode-p
+*** Latex interface 
+Set a nice writing environment for latex files.
+#+begin_src emacs-lisp
+  (defun ak-latex-interface-toggle ()
+    "Toggle nice latex interface"
+    (interactive)
+    (defvar-local ak-latex-interface nil)
+    (if TeX-mode-p
   	(if (not ak-latex-interface)
   	    (progn
   	      (visual-line-mode)
@@ -2114,34 +2118,52 @@ Writing latex documents with =auctex=.
   	    (visual-fill-column-mode -1)
   	    (setq ak-latex-interface nil))
   	  )
-        (message "Not in TeX mode!"))
-      )
-
-    (ak-local-leader-key-def
-      :states '(normal visual)
-      :keymaps 'LaTeX-mode-map
-      "c" '(TeX-command-master :which-key "command master")
-      "f" '(TeX-font :which-key "fontify")
-      "e" '(LaTeX-environment :which-key "environment")
-      "s" '(LaTeX-section :which-key "section")
-      "i" '(ak-latex-interface-toggle :which-key "Interface toggle")
-      ;; preview-latex
-      "p" '(:ignore :which-key "preview")
-      "pb"    '(preview-buffer :which-key "buffer")
-      "pd"    '(preview-document :which-key "document")
-      "pe"    '(preview-environment :which-key "environment")
-      "pf"    '(preview-cache-preamble :which-key "cache preamble")
-      "pF"    '(preview-cache-preamble-off :which-key "cache preamble off")
-      "pp"    '(preview-at-point :which-key "at point")
-      "pr"    '(preview-region :which-key "region")
-      "ps"    '(preview-section :which-key "section")
-      "pc" '(:ignore :which-key "clearout")
-      "pcb" '(preview-clearout-buffer :which-key "buffer")
-      "pcd" '(preview-clearout-document :which-key "document")
-      "pcp" '(preview-clearout-at-point :which-key "at")
-      "pcr" '(preview-clearout :which-key "clearout")
-      "pcs" '(preview-clearout-section :which-key "section"))
+      (message "Not in TeX mode!"))
     )
+#+end_src
+
+*** Keybindings
+#+begin_src emacs-lisp
+  (ak-local-leader-key-def
+    :states '(normal visual)
+    :keymaps 'LaTeX-mode-map
+    "c" '(TeX-command-master :which-key "command master")
+    "f" '(TeX-font :which-key "fontify")
+    "e" '(LaTeX-environment :which-key "environment")
+    "s" '(LaTeX-section :which-key "section")
+    "i" '(ak-latex-interface-toggle :which-key "Interface toggle")
+    ;; preview-latex
+    "p" '(:ignore :which-key "preview")
+    "pb"    '(preview-buffer :which-key "buffer")
+    "pd"    '(preview-document :which-key "document")
+    "pe"    '(preview-environment :which-key "environment")
+    "pf"    '(preview-cache-preamble :which-key "cache preamble")
+    "pF"    '(preview-cache-preamble-off :which-key "cache preamble off")
+    "pp"    '(preview-at-point :which-key "at point")
+    "pr"    '(preview-region :which-key "region")
+    "ps"    '(preview-section :which-key "section")
+    "pc" '(:ignore :which-key "clearout")
+    "pcb" '(preview-clearout-buffer :which-key "buffer")
+    "pcd" '(preview-clearout-document :which-key "document")
+    "pcp" '(preview-clearout-at-point :which-key "at")
+    "pcr" '(preview-clearout :which-key "clearout")
+    "pcs" '(preview-clearout-section :which-key "section"))
+#+end_src
+
+*** Synctex support
+#+begin_src emacs-lisp
+  (add-hook 'LaTeX-mode-hook 
+            (lambda () 
+              (setq TeX-view-program-selection '((output-pdf "PDF Tools")) 
+                    TeX-source-correlate-mode t 
+                    TeX-source-correlate-method 'synctex 
+                    TeX-save-query nil))) 
+
+  (add-hook 'TeX-after-compilation-finished-functions
+  	    #'TeX-revert-document-buffer)
+
+  ;; Enable inline preview 
+  (setq preview-auto-cache-preamble t))
 #+end_src
 
 *** LatexMk support
@@ -2177,6 +2199,17 @@ Configurations for =TRAMP=.
    "TAB" nil
    "<backtab>" #'yas-expand)
   #+end_src
+
+** Editor config
+#+begin_src emacs-lisp
+  (use-package editorconfig
+    :ensure t)
+#+end_src
+
+** VLF
+#+begin_src emacs-lisp
+(use-package vlf)
+#+end_src
 
 * TODOs
 - Custom splash screen with vertical centering and theme appropriate fancy splash image 
